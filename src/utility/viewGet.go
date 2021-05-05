@@ -3,6 +3,8 @@ package utility
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func RequestGet(ipAddress string) {
@@ -13,6 +15,8 @@ func RequestGet(ipAddress string) {
 	}
 }
 
-func ResponseGet() {
-
+func ResponseGet(r *gin.Engine, dict map[string]string) {
+	r.GET("/key-value-store-view", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "View retrieved successfully", "view": dict})
+	})
 }

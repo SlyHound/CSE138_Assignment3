@@ -20,12 +20,13 @@ endpoint is as follows: /key-value-store-view
 */
 
 func main() {
-	// var kvStore = make(map[string]string) // key value store for PUT, GET, and DELETE requests for replicas
+	var kvStore = make(map[string]string) // key value store for PUT, GET, and DELETE requests for replicas
 
 	router := gin.Default()
 	ipAddress := os.Getenv("SOCKET_ADDRESS")
 
 	utility.RequestGet(ipAddress)
+	utility.ResponseGet(router, kvStore)
 
 	err := router.Run(port)
 	if err != nil {
