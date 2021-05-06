@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"src/utility"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	port = ":8085"
+	port      = ":8085"
+	viewCount = 2
 )
 
 /*
@@ -20,15 +22,24 @@ endpoint is as follows: /key-value-store-view
 */
 
 func main() {
-	var kvStore = make(map[string]string) // key value store for PUT, GET, and DELETE requests for replicas
+	// var kvStore = make(map[string]string) // key value store for PUT, GET, and DELETE requests for replicas
 
 	router := gin.Default()
-	ipAddress := os.Getenv("SOCKET_ADDRESS")
+	personalSocketAddr := os.Getenv("SOCKET_ADDRESS")
+	view := strings.Split(os.Getenv("VIEW"), ",")
 
-	utility.RequestGet(ipAddress)
-	utility.ResponseGet(router, kvStore)
+	var viewSocketAddrs [viewCount]string // there can at most be two other views
+	for index, currentView := range view {
+		if currentView != personalSocketAddr {
+			viewSocketAddrs[index] = currentView
+		}
+	}
+
+	utility.RequestGet(viewSocketAddrs)
+	utility.ResponseGet(router, view)
 
 	err := router.Run(port)
+
 	if err != nil {
 		fmt.Println("There was an error attempting to run the router on port", port, "with the error", err)
 	}
