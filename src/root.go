@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	port      = ":8085"
-	viewCount = 2
+	port        = ":8085"
+	numReplicas = 2
 )
 
 /*
@@ -28,7 +28,7 @@ func main() {
 	personalSocketAddr := os.Getenv("SOCKET_ADDRESS")
 	view := strings.Split(os.Getenv("VIEW"), ",")
 
-	var viewSocketAddrs [viewCount]string // there can at most be two other views
+	viewSocketAddrs := make([]string, numReplicas, numReplicas) // there can at most be two other views
 	for index, currentView := range view {
 		if currentView != personalSocketAddr {
 			viewSocketAddrs[index] = currentView
