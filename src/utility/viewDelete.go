@@ -37,6 +37,7 @@ func RequestDelete(allSocketAddrs []string, viewSocketAddrs []string, indexToRem
 
 		if err != nil { // if a response doesn't come back, then that replica might be down
 			fmt.Println("There was an error sending a DELETE request to " + viewSocketAddrs[index])
+			continue
 		}
 		defer response.Body.Close()
 	}
@@ -69,7 +70,7 @@ func ResponseDelete(r *gin.Engine, view []string) {
 
 		// if the passed in socket address is present in the current replica's view, then delete it, else 404 error //
 		if presentInView {
-			_ = append(view[:oIndex], view[oIndex+1:]...)
+			_ = append(view[:oIndex], view[oIndex+1:]...) // deletes the replica from the current view that received the DELETE rqst. //
 			c.JSON(http.StatusOK, gin.H{"message": "Replica deleted successfully from the view"})
 		} else {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Socket address does not exist in the view", "message": "Error in DELETE"})

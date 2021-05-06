@@ -36,17 +36,16 @@ func RequestPut(allSocketAddrs []string, viewSocketAddrs []string, newSocketAddr
 
 		if err != nil { // if a response doesn't come back, then that replica might be down
 			fmt.Println("There was an error sending a PUT request to " + viewSocketAddrs[index])
-			defer response.Body.Close()
 			/* call upon RequestDelete to delete the replica from its own view and
 			   broadcast to other replica's to delete that same replica from their view */
-			// RequestDelete(allSocketAddrs, index)
+			RequestDelete(allSocketAddrs, viewSocketAddrs, index)
 			continue
 		}
 		defer response.Body.Close()
 	}
 }
 
-func ResponsePut(r *gin.Engine, view []string, allSocketAddrs []string) {
+func ResponsePut(r *gin.Engine, view []string) {
 
 	var d dict
 	r.PUT("/key-value-store-view", func(c *gin.Context) {
@@ -59,7 +58,7 @@ func ResponsePut(r *gin.Engine, view []string, allSocketAddrs []string) {
 
 		strBody := string(body[:])
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
-		allSocketAddrs = append(allSocketAddrs, d.Value)
+		view = append(view, d.Value) // adds the new replica to the view //
 		defer c.Request.Body.Close()
 
 		presentInView := false

@@ -37,8 +37,14 @@ func healthCheck(view []string, personalSocketAddr string) {
 	// runs infinitely on a 1 second clock interval //
 	interval := time.Tick(time.Second * 1)
 	for range interval {
-		utility.RequestGet(viewSocketAddrs)
+		utility.RequestGet(view, viewSocketAddrs)
 	}
+}
+
+func variousResponses(router *gin.Engine, view []string) {
+	utility.ResponseGet(router, view)
+	utility.ResponseDelete(router, view)
+	utility.ResponsePut(router, view)
 }
 
 func main() {
@@ -51,8 +57,7 @@ func main() {
 	view := strings.Split(os.Getenv("VIEW"), ",")
 
 	go healthCheck(view, personalSocketAddr)
-
-	utility.ResponseGet(router, view)
+	variousResponses(router, view)
 
 	err := router.Run(port)
 

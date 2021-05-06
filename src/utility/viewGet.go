@@ -9,7 +9,7 @@ import (
 
 /* this function will broadcast a GET request from one replica to all other
    replica's to ensure that they are currently up. */
-func RequestGet(viewSocketAddrs []string) {
+func RequestGet(allSocketAddrs []string, viewSocketAddrs []string) {
 	for index := range viewSocketAddrs {
 		fmt.Println("viewSocketAddrs[index]:", viewSocketAddrs[index])
 		request, err := http.NewRequest("GET", "http://"+viewSocketAddrs[index]+"/key-value-store-view", nil)
@@ -26,7 +26,7 @@ func RequestGet(viewSocketAddrs []string) {
 			fmt.Println("There was an error sending a GET request to " + viewSocketAddrs[index])
 			/* call upon RequestDelete to delete the replica from its own view and
 			   broadcast to other replica's to delete that same replica from their view */
-			// utility.RequestDelete(allSocketAddrs, index)
+			RequestDelete(allSocketAddrs, viewSocketAddrs, index)
 			continue
 		}
 		defer response.Body.Close()
