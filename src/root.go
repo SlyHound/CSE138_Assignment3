@@ -14,23 +14,24 @@ const (
 	port = ":8085"
 )
 
-func setupRouter(kvStore map[string]string) *gin.Engine {
+func setupRouter(kvStore map[string]utility.StoreVal) *gin.Engine {
 	router := gin.Default()
-	socket_addr := os.Getenv("SOCKET_ADDRESS")
+	socketAddr := os.Getenv("SOCKET_ADDRESS")
 	view := strings.Split(os.Getenv("VIEW"), ",")
 	gin.SetMode(gin.ReleaseMode)
 	// keep global variable of our SOCKET ADDRESS
 	gin.DefaultWriter = ioutil.Discard
 	// main functionality from assignment 2, basically need to modify the PUTS and DELETES to echo to other
-	utility.PutRequest(router, kvStore, socket_addr, view)
-	utility.GetRequest(router, kvStore, socket_addr, view)
-	utility.DeleteRequest(router, kvStore, socket_addr, view)
+	utility.PutRequest(router, kvStore, socketAddr, view)
+	utility.GetRequest(router, kvStore, socketAddr, view)
+	utility.DeleteRequest(router, kvStore, socketAddr, view)
+	utility.ReplicatePut(router, kvStore, socketAddr, view)
 	return router
 }
 
 func main() {
 
-	var kvStore = make(map[string]string) // key-value store for PUT, GET, & DELETE requests (exported variable)
+	var kvStore = make(map[string]utility.StoreVal) // key-value store for PUT, GET, & DELETE requests (exported variable)
 
 	router := setupRouter(kvStore)
 	err := router.Run(port)

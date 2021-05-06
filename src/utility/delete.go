@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func DeleteRequest(r *gin.Engine, dict map[string]string, local_addr string, view []string) {
+func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, local_addr string, view []string) {
 
 	println(view)
 	r.DELETE("/key-value-store/:key", func(c *gin.Context) {

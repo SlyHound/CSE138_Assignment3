@@ -1,7 +1,9 @@
 package utility
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -32,18 +34,18 @@ func handleRequests(view string) gin.HandlerFunc {
 		fwdRequest.Header = c.Request.Header
 
 		httpForwarder := &http.Client{}
-		httpForwarder.Do(fwdRequest)
+		fwdResponse, err := httpForwarder.Do(fwdRequest)
 
 		// Shouldn't worry about Error checking? just send requests out and if things are down oh well?
-		// if err != nil {
-		// 	msg := "Error in " + fwdRequest.Method
-		// 	c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Main instance is down", "message": msg})
-		// }
-		// if fwdResponse != nil {
-		// 	body, _ := ioutil.ReadAll(fwdResponse.Body)
-		// 	rawJSON := json.RawMessage(body)
-		// 	c.JSON(fwdResponse.StatusCode, rawJSON)
-		// 	defer fwdResponse.Body.Close()
-		// }
+		if err != nil {
+			msg := "Error in " + fwdRequest.Method
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Main instance is down", "message": msg})
+		}
+		if fwdResponse != nil {
+			body, _ := ioutil.ReadAll(fwdResponse.Body)
+			rawJSON := json.RawMessage(body)
+			c.JSON(fwdResponse.StatusCode, rawJSON)
+			defer fwdResponse.Body.Close()
+		}
 	}
 }
