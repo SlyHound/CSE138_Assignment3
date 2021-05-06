@@ -18,4 +18,5 @@ func GetRequest(r *gin.Engine, dict map[string]string, local_addr string, view [
 			c.JSON(http.StatusNotFound, gin.H{"doesExist": false, "error": "Key does not exist", "message": "Error in GET"})
 		}
 	})
+
 }

@@ -8,6 +8,7 @@ import (
 
 func DeleteRequest(r *gin.Engine, dict map[string]string, local_addr string, view []string) {
 
+	println(view)
 	r.DELETE("/key-value-store/:key", func(c *gin.Context) {
 		key := c.Param("key")
 
@@ -19,4 +20,13 @@ func DeleteRequest(r *gin.Engine, dict map[string]string, local_addr string, vie
 			c.JSON(http.StatusNotFound, gin.H{"doesExist": false, "error": "Key does not exist", "message": "Error in DELETE"})
 		}
 	})
+
+	// Broadcast requests out to all addresses in view
+	for i := 0; i < len(view); i++ {
+		if view[i] == local_addr {
+			continue
+		} else {
+			handleRequests(view[i])
+		}
+	}
 }

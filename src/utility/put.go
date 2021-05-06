@@ -19,6 +19,7 @@ type Dict struct {
 
 func PutRequest(r *gin.Engine, dict map[string]string, local_addr string, view []string) {
 	var d Dict
+	println(view)
 	r.PUT("/key-value-store/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		body, _ := ioutil.ReadAll(c.Request.Body)
@@ -40,4 +41,12 @@ func PutRequest(r *gin.Engine, dict map[string]string, local_addr string, view [
 			}
 		}
 	})
+
+	for i := 0; i < len(view); i++ {
+		if view[i] == local_addr {
+			continue
+		} else {
+			handleRequests(view[i])
+		}
+	}
 }
