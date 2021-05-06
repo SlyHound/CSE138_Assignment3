@@ -49,7 +49,7 @@ func ResponseDelete(r *gin.Engine, view []string) {
 
 		if err != nil {
 			fmt.Println("There was an error attempting to read the request body.")
-			c.JSON(http.StatusInternalServerError, gin.H{})
+			return
 		}
 
 		strBody := string(body[:])

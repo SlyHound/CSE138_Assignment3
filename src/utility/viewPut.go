@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"src/utility"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -40,7 +39,7 @@ func RequestPut(allSocketAddrs []string, viewSocketAddrs []string, newSocketAddr
 			defer response.Body.Close()
 			/* call upon RequestDelete to delete the replica from its own view and
 			   broadcast to other replica's to delete that same replica from their view */
-			utility.RequestDelete(allSocketAddrs, index)
+			// RequestDelete(allSocketAddrs, index)
 			continue
 		}
 		defer response.Body.Close()
