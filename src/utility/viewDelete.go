@@ -16,9 +16,10 @@ type Dict struct {
 
 /* this function deletes the replica from its own
 view and the replica from all other replica's views */
-func RequestDelete(viewSocketAddrs []string, indexToRemove int) {
+func RequestDelete(allSocketAddrs []string, viewSocketAddrs []string, indexToRemove int) {
 
 	data := strings.NewReader(`{"socket-address":` + viewSocketAddrs[indexToRemove] + `}`)
+	_ = append(allSocketAddrs[:indexToRemove], allSocketAddrs[indexToRemove+1:]...) // removes the replica we want //
 
 	for index := range viewSocketAddrs {
 
@@ -56,16 +57,19 @@ func ResponseDelete(r *gin.Engine, view []string) {
 		defer c.Request.Body.Close()
 
 		presentInView := false
+		oIndex := 0
 
-		for _, viewSocketAddr := range view {
+		for index, viewSocketAddr := range view {
 			if d.Value == viewSocketAddr {
 				presentInView = true
+				oIndex = index
 				break
 			}
 		}
 
 		// if the passed in socket address is present in the current replica's view, then delete it, else 404 error //
 		if presentInView {
+			_ = append(view[:oIndex], view[oIndex+1:]...)
 			c.JSON(http.StatusOK, gin.H{"message": "Replica deleted successfully from the view"})
 		} else {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Socket address does not exist in the view", "message": "Error in DELETE"})
