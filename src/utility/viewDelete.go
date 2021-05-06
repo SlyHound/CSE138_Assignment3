@@ -17,9 +17,11 @@ type Dict struct {
 /* this function deletes the replica from its own
 view and the replica from all other replica's views */
 func RequestDelete(viewSocketAddrs []string, indexToRemove int) {
+
+	data := strings.NewReader(`{"socket-address":` + viewSocketAddrs[indexToRemove] + `}`)
+
 	for index := range viewSocketAddrs {
 
-		data := strings.NewReader(`{"socket-address":` + viewSocketAddrs[indexToRemove] + `}`)
 		request, err := http.NewRequest("DELETE", "http://"+viewSocketAddrs[index]+"/key-value-store-view", data)
 
 		if err != nil {
@@ -34,8 +36,6 @@ func RequestDelete(viewSocketAddrs []string, indexToRemove int) {
 
 		if err != nil { // if a response doesn't come back, then that replica might be down
 			fmt.Println("There was an error sending a DELETE request to " + viewSocketAddrs[index])
-			defer response.Body.Close()
-			continue
 		}
 		defer response.Body.Close()
 	}
