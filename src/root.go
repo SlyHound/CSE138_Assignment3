@@ -18,6 +18,7 @@ func setupRouter(kvStore map[string]utility.StoreVal) *gin.Engine {
 	router := gin.Default()
 	socketAddr := os.Getenv("SOCKET_ADDRESS")
 	view := strings.Split(os.Getenv("VIEW"), ",")
+	fmt.Printf("%v\n", view)
 	gin.SetMode(gin.ReleaseMode)
 	// keep global variable of our SOCKET ADDRESS
 	gin.DefaultWriter = ioutil.Discard

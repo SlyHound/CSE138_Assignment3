@@ -2,6 +2,7 @@ package utility
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -47,17 +48,17 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 				c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
 			}
 		}
-		println("In Put Request")
 		//send replicas PUT as well
 		for i := 0; i < len(view); i++ {
 			println("Replicating message")
 			println("http://" + view[i] + "/key-value-store-r/" + key)
 			if view[i] == localAddr {
+				fmt.Println("TRUE BABY TRUE")
 				continue
 			} else {
 				c.Request.URL.Host = view[i]
 				c.Request.URL.Scheme = "http"
-
+				fmt.Printf("%v\n", view)
 				fwdRequest, err := http.NewRequest(c.Request.Method, "http://"+view[i]+"/key-value-store-r/"+key, c.Request.Body)
 				if err != nil {
 					http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
@@ -91,7 +92,7 @@ func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, local_addr string, vi
 		key := c.Param("key")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		strBody := string(body[:])
-		println(strBody)
+		fmt.Printf("%v\n", view)
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
 		defer c.Request.Body.Close()
 		if strBody == "{}" {
