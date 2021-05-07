@@ -13,7 +13,7 @@ func GetRequest(r *gin.Engine, dict map[string]StoreVal, local_addr string, view
 
 		// if the key-value pair exists, then just return it //
 		if value, exists := dict[key]; exists {
-			c.JSON(http.StatusOK, gin.H{"doesExist": true, "message": "Retrieved successfully", "value": value.Value, "causal-metadata": value.Clock})
+			c.JSON(http.StatusOK, gin.H{"doesExist": true, "message": "Retrieved successfully", "value": value.Value, "causal-metadata": value.CausalMetadata})
 		} else {
 			c.JSON(http.StatusNotFound, gin.H{"doesExist": false, "error": "Key does not exist", "message": "Error in GET"})
 		}

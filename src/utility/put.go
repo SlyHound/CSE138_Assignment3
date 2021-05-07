@@ -1,11 +1,11 @@
 package utility
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,24 +15,25 @@ const (
 )
 
 type Dict struct {
-	Key, Value string
-	Clock      []string
+	Key, Value     string
+	CausalMetadata []int
 }
 
 type StoreVal struct {
-	Value string
-	Clock []string
+	Value          string `json:"value"`
+	CausalMetadata []int  `json:"causal-metadata"`
 }
 
 func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view []string) {
-	var d Dict
+	var d StoreVal
 	//receive request
 	r.PUT("/key-value-store/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		strBody := string(body[:])
-		println(strBody)
-		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
+		println("BODY: " + strBody)
+		json.Unmarshal(body, &d)
+		fmt.Printf("%v\n", d.CausalMetadata)
 		defer c.Request.Body.Close()
 		if strBody == "{}" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Value is missing", "message": "Error in PUT"})
@@ -42,10 +43,10 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 			// if a key-value pair already exists, then replace the old value //
 			// TO-DO: implement causal consistency and compare causal-metadata here
 			if _, exists := dict[key]; exists {
-				dict[key] = StoreVal{d.Value, d.Clock}
+				dict[key] = StoreVal{d.Value, d.CausalMetadata}
 				c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
 			} else { // otherwise we insert a new key-value pair //
-				dict[key] = StoreVal{d.Value, d.Clock}
+				dict[key] = StoreVal{d.Value, d.CausalMetadata}
 				c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
 			}
 		}
@@ -60,8 +61,10 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 				c.Request.URL.Scheme = "http"
 				//When incrementing clock values, convert array to ints and then perform operations on the array
 				//Keeping as a string makes it easier to send json
-				data := strings.NewReader(`{ value :` + d.Value + `, causal-metadata: ` + `[` + strings.Join(d.Clock, ",") + `]}`)
-				fwdRequest, err := http.NewRequest("PUT", "http://"+view[i]+"/key-value-store-r/"+key, data)
+				data := &StoreVal{Value: d.Value, CausalMetadata: d.CausalMetadata}
+				//data := strings.NewReader(`{ value :` + d.Value + `, causal-metadata: ` + `[` + strings.Join(d.CausalMetadata, ",") + `]}`)
+				jsonData, _ := json.Marshal(data)
+				fwdRequest, err := http.NewRequest("PUT", "http://"+view[i]+"/key-value-store-r/"+key, bytes.NewBuffer(jsonData))
 				if err != nil {
 					http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 					return
@@ -90,14 +93,14 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 
 //ReplicatePut Endpoint for replication
 func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, local_addr string, view []string) {
-	var d Dict
+	var d StoreVal
 	r.PUT("/key-value-store-r/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		strBody := string(body[:])
-		fmt.Printf("%s\n", strBody)
-		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
-		fmt.Printf("%s\n", d.Value)
+		fmt.Printf("STRBODY: %s\n", strBody)
+		json.Unmarshal(body, &d)
+		fmt.Printf("VALUE: %s\n", d.Value)
 		defer c.Request.Body.Close()
 		if strBody == "{}" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Value is missing", "message": "Error in PUT"})
@@ -107,10 +110,10 @@ func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, local_addr string, vi
 			// if a key-value pair already exists, then replace the old value //
 			// TO-DO: implement causal consistency and compare causal-metadata here
 			if _, exists := dict[key]; exists {
-				dict[key] = StoreVal{d.Value, d.Clock}
+				dict[key] = StoreVal{d.Value, d.CausalMetadata}
 				c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
 			} else { // otherwise we insert a new key-value pair //
-				dict[key] = StoreVal{d.Value, d.Clock}
+				dict[key] = StoreVal{d.Value, d.CausalMetadata}
 				c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
 			}
 		}
