@@ -16,12 +16,12 @@ const (
 
 type Dict struct {
 	Key, Value string
-	Clock      []int
+	Clock      []string
 }
 
 type StoreVal struct {
 	Value string
-	Clock []int
+	Clock []string
 }
 
 func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view []string) {
@@ -31,6 +31,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 		key := c.Param("key")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		strBody := string(body[:])
+		println(strBody)
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
 		defer c.Request.Body.Close()
 		if strBody == "{}" {
@@ -53,13 +54,14 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 			println("Replicating message")
 			println("http://" + view[i] + "/key-value-store-r/" + key)
 			if view[i] == localAddr {
-				fmt.Println("TRUE BABY TRUE")
 				continue
 			} else {
 				c.Request.URL.Host = view[i]
 				c.Request.URL.Scheme = "http"
-				fmt.Printf("%v\n", view)
-				fwdRequest, err := http.NewRequest(c.Request.Method, "http://"+view[i]+"/key-value-store-r/"+key, c.Request.Body)
+				//When incrementing clock values, convert array to ints and then perform operations on the array
+				//Keeping as a string makes it easier to send json
+				data := strings.NewReader(`{ value :` + d.Value + `, causal-metadata: ` + `[` + strings.Join(d.Clock, ",") + `]}`)
+				fwdRequest, err := http.NewRequest("PUT", "http://"+view[i]+"/key-value-store-r/"+key, data)
 				if err != nil {
 					http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 					return
@@ -86,14 +88,16 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 	})
 }
 
+//ReplicatePut Endpoint for replication
 func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, local_addr string, view []string) {
 	var d Dict
 	r.PUT("/key-value-store-r/:key", func(c *gin.Context) {
 		key := c.Param("key")
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		strBody := string(body[:])
-		fmt.Printf("%v\n", view)
+		fmt.Printf("%s\n", strBody)
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
+		fmt.Printf("%s\n", d.Value)
 		defer c.Request.Body.Close()
 		if strBody == "{}" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Value is missing", "message": "Error in PUT"})
