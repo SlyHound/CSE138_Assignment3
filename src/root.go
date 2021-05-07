@@ -37,7 +37,28 @@ func healthCheck(view []string, personalSocketAddr string) {
 	// runs infinitely on a 1 second clock interval //
 	interval := time.Tick(time.Second * 1)
 	for range interval {
-		utility.RequestGet(view, viewSocketAddrs)
+		/* If a request returns with a view having # of replicas > current view
+		   then broadcast a PUT request (this means a replica has been added to the system) */
+		response := utility.RequestGet(view, viewSocketAddrs)
+		response = strings.Trim(response, "[]")
+		receivedView := strings.Split(response, ",")
+		inReplica := false
+		newReplica := ""
+
+		for _, recvSocketAddr := range receivedView {
+			inReplica = false
+			newReplica = recvSocketAddr
+			for _, viewSocketAddr := range view {
+				if viewSocketAddr == recvSocketAddr {
+					inReplica = true
+					break
+				}
+			}
+		}
+
+		if !inReplica { // broadcast a PUT request with the new replica to add to all replica's views
+			utility.RequestPut(view, viewSocketAddrs, newReplica)
+		}
 	}
 }
 
