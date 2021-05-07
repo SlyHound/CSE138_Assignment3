@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+//GetRequest for client interaction
 func GetRequest(r *gin.Engine, dict map[string]StoreVal, local_addr string, view []string) {
 
 	r.GET("/key-value-store/:key", func(c *gin.Context) {

@@ -45,6 +45,7 @@ func setupRouter(kvStore map[string]utility.StoreVal) *gin.Engine {
 	utility.GetRequest(router, kvStore, socketAddr, view)
 	utility.DeleteRequest(router, kvStore, socketAddr, view)
 	utility.ReplicatePut(router, kvStore, socketAddr, view)
+	utility.ReplicateDelete(router, kvStore, socketAddr, view)
 	return router
 }
 

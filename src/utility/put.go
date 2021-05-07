@@ -24,6 +24,7 @@ type StoreVal struct {
 	CausalMetadata []int  `json:"causal-metadata"`
 }
 
+//PutRequest for client interaction
 func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view []string) {
 	var d StoreVal
 	//receive request
@@ -52,47 +53,40 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 		}
 		//send replicas PUT as well
 		for i := 0; i < len(view); i++ {
-			println("Replicating message")
-			println("http://" + view[i] + "/key-value-store-r/" + key)
-			if view[i] == localAddr {
-				continue
-			} else {
-				c.Request.URL.Host = view[i]
-				c.Request.URL.Scheme = "http"
-				//When incrementing clock values, convert array to ints and then perform operations on the array
-				//Keeping as a string makes it easier to send json
-				data := &StoreVal{Value: d.Value, CausalMetadata: d.CausalMetadata}
-				//data := strings.NewReader(`{ value :` + d.Value + `, causal-metadata: ` + `[` + strings.Join(d.CausalMetadata, ",") + `]}`)
-				jsonData, _ := json.Marshal(data)
-				fwdRequest, err := http.NewRequest("PUT", "http://"+view[i]+"/key-value-store-r/"+key, bytes.NewBuffer(jsonData))
-				if err != nil {
-					http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-					return
-				}
+			println("Replicating message to: " + "http://" + view[i] + "/key-value-store-r/" + key)
+			c.Request.URL.Host = view[i]
+			c.Request.URL.Scheme = "http"
+			data := &StoreVal{Value: d.Value, CausalMetadata: d.CausalMetadata}
+			jsonData, _ := json.Marshal(data)
+			fwdRequest, err := http.NewRequest("PUT", "http://"+view[i]+"/key-value-store-r/"+key, bytes.NewBuffer(jsonData))
+			if err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+				return
+			}
 
-				fwdRequest.Header = c.Request.Header
+			fwdRequest.Header = c.Request.Header
 
-				httpForwarder := &http.Client{}
-				fwdResponse, err := httpForwarder.Do(fwdRequest)
+			httpForwarder := &http.Client{}
+			fwdResponse, err := httpForwarder.Do(fwdRequest)
 
-				// Shouldn't worry about Error checking? just send requests out and if things are down oh well?
-				if err != nil {
-					msg := "Error in " + fwdRequest.Method
-					c.JSON(http.StatusServiceUnavailable, gin.H{"error": view[i] + " is down", "message": msg})
-				}
-				if fwdResponse != nil {
-					body, _ := ioutil.ReadAll(fwdResponse.Body)
-					rawJSON := json.RawMessage(body)
-					c.JSON(fwdResponse.StatusCode, rawJSON)
-					defer fwdResponse.Body.Close()
-				}
+			// Shouldn't worry about Error checking? just send requests out and if things are down oh well?
+			if err != nil {
+				msg := "Error in " + fwdRequest.Method
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": view[i] + " is down", "message": msg})
+			}
+			if fwdResponse != nil {
+				body, _ := ioutil.ReadAll(fwdResponse.Body)
+				rawJSON := json.RawMessage(body)
+				c.JSON(fwdResponse.StatusCode, rawJSON)
+				defer fwdResponse.Body.Close()
 			}
 		}
+
 	})
 }
 
 //ReplicatePut Endpoint for replication
-func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, local_addr string, view []string) {
+func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, localAddr string, view []string) {
 	var d StoreVal
 	r.PUT("/key-value-store-r/:key", func(c *gin.Context) {
 		key := c.Param("key")
