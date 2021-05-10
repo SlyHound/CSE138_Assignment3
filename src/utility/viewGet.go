@@ -3,28 +3,30 @@ package utility
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-type View struct {
-	Value string
+type get struct {
+	Message string
+	View    []string
 }
 
 /* this function will broadcast a GET request from one replica to all other
    replica's to ensure that they are currently up. */
-func RequestGet(allSocketAddrs []string, viewSocketAddrs []string) string {
-	var v View
+func RequestGet(allSocketAddrs []string, viewSocketAddrs []string, endpoint string) []string {
+	// strBody := ""
+	var v get
 	for index := range viewSocketAddrs {
 		fmt.Println("viewSocketAddrs[index]:", viewSocketAddrs[index])
-		request, err := http.NewRequest("GET", "http://"+viewSocketAddrs[index]+"/key-value-store-view", nil)
+		request, err := http.NewRequest("GET", "http://"+viewSocketAddrs[index]+endpoint, nil)
 
 		if err != nil {
 			fmt.Println("There was an error creating a GET request with the following error:", err.Error())
-			return ""
+			break
 		}
 
 		httpForwarder := &http.Client{} // alias for DefaultClient
@@ -37,16 +39,26 @@ func RequestGet(allSocketAddrs []string, viewSocketAddrs []string) string {
 			RequestDelete(allSocketAddrs, viewSocketAddrs, index)
 			continue
 		}
+		// fmt.Println("Check response.Body in RequestGet:", response.Body)
 		defer response.Body.Close()
-		body, _ := io.ReadAll(response.Body)
+		body, _ := ioutil.ReadAll(response.Body)
 		strBody := string(body[:])
+		// fmt.Println("Check strBody in RequestGet:", strBody)
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&v)
+		// fmt.Println("Check v.View, V.Message in RequestGet:", v.View, v.Message)
 	}
-	return v.Value
+	return v.View
 }
 
 func ResponseGet(r *gin.Engine, view []string) {
 	r.GET("/key-value-store-view", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "View retrieved successfully", "view": view})
+	})
+}
+
+// custom function designed to get all key-value pairs of the current replica to store in the new replica's store //
+func KeyValueResponse(r *gin.Engine, store map[string]string) {
+	r.GET("/key-value-store-values", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "All pairs retrieved successfully", "view": store})
 	})
 }
