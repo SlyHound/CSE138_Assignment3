@@ -33,6 +33,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		strBody := string(body[:])
 		println("BODY: " + strBody)
+		//hmmmm
 		json.Unmarshal(body, &d)
 		fmt.Printf("%v\n", d.CausalMetadata)
 		defer c.Request.Body.Close()
@@ -44,6 +45,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 			// if a key-value pair already exists, then replace the old value //
 			// TO-DO: implement causal consistency and compare causal-metadata here
 			if _, exists := dict[key]; exists {
+				//Causal CHECK @Jackie
 				dict[key] = StoreVal{d.Value, d.CausalMetadata}
 				c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
 			} else { // otherwise we insert a new key-value pair //
@@ -53,6 +55,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 		}
 		//send replicas PUT as well
 		for i := 0; i < len(view); i++ {
+			//Causal INCREMENT @Jackie
 			println("Replicating message to: " + "http://" + view[i] + "/key-value-store-r/" + key)
 			c.Request.URL.Host = view[i]
 			c.Request.URL.Scheme = "http"
