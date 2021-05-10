@@ -17,12 +17,16 @@ type get struct {
 
 /* this function will broadcast a GET request from one replica to all other
    replica's to ensure that they are currently up. */
-func RequestGet(allSocketAddrs []string, viewSocketAddrs []string, endpoint string) []string {
+func RequestGet(allSocketAddrs []string, personalSocketAddr string, endpoint string) []string {
 	// strBody := ""
 	var v get
-	for index := range viewSocketAddrs {
-		fmt.Println("viewSocketAddrs[index]:", viewSocketAddrs[index])
-		request, err := http.NewRequest("GET", "http://"+viewSocketAddrs[index]+endpoint, nil)
+	for index, addr := range allSocketAddrs {
+		if addr == personalSocketAddr { // skip over the personal replica since we don't send to ourselves
+			continue
+		}
+
+		fmt.Println("viewSocketAddrs[index]:", allSocketAddrs[index])
+		request, err := http.NewRequest("GET", "http://"+allSocketAddrs[index]+endpoint, nil)
 
 		if err != nil {
 			fmt.Println("There was an error creating a GET request with the following error:", err.Error())
@@ -33,10 +37,11 @@ func RequestGet(allSocketAddrs []string, viewSocketAddrs []string, endpoint stri
 		response, err := httpForwarder.Do(request)
 
 		if err != nil { // if a response doesn't come back, then that replica might be down
-			fmt.Println("There was an error sending a GET request to " + viewSocketAddrs[index])
+			fmt.Println("There was an error sending a GET request to " + allSocketAddrs[index])
 			/* call upon RequestDelete to delete the replica from its own view and
 			   broadcast to other replica's to delete that same replica from their view */
-			RequestDelete(allSocketAddrs, viewSocketAddrs, index)
+			allSocketAddrs = RequestDelete(allSocketAddrs, personalSocketAddr, index)
+			fmt.Println("Check allSocketAddrs after deleting:", allSocketAddrs)
 			continue
 		}
 		// fmt.Println("Check response.Body in RequestGet:", response.Body)
