@@ -14,10 +14,6 @@ const (
 	keyLimit int = 50 // maximum number of characters allowed for a key
 )
 
-type Dict struct {
-	Key, Value     string
-	CausalMetadata []int
-}
 
 type StoreVal struct {
 	Value          string `json:"value"`
