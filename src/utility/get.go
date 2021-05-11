@@ -7,7 +7,7 @@ import (
 )
 
 //GetRequest for client interaction
-func GetRequest(r *gin.Engine, dict map[string]StoreVal, local_addr int, view []string) {
+func GetRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
 
 	r.GET("/key-value-store/:key", func(c *gin.Context) {
 		key := c.Param("key")

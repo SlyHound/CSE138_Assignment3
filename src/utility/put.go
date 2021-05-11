@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,12 +24,12 @@ func canDeliver(senderVC []int, replicaVC []int) bool {
 	// conditions for delivery:
 	//      senderVC[senderslot] = replicaVC[senderslot] + 1
 	//      senderVC[notsender] <= replicaVC[not sender]
-	senderID := senderVC[3]	// sender position in VC
-	
+	senderID := senderVC[3] // sender position in VC
+
 	for i := 0; i < 3; i++ {
-		if i == senderID and senderVC[i] != replicaVC[i] + 1 {
+		if i == senderID && senderVC[i] != replicaVC[i]+1 {
 			return false
-		} else if i != senderID and senderVC[i] > replicaVC[i] {
+		} else if i != senderID && senderVC[i] > replicaVC[i] {
 			return false
 		}
 	}
@@ -45,16 +46,15 @@ func max(x int, y int) int {
 
 // calculate new VC: max(senderVC, replicaVC)
 func updateVC(senderVC []int, replicaVC []int) []int {
-	var newVC [4]int
+	var newVC []int
 	for i := 0; i < 3; i++ {
 		newVC[i] = max(senderVC[i], replicaVC[i])
 	}
 	return newVC
 }
 
-
 //PutRequest for client interaction
-func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
+func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string, currVC []int) {
 	var d StoreVal
 	//receive request
 	r.PUT("/key-value-store/:key", func(c *gin.Context) {
@@ -76,9 +76,11 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 			if _, exists := dict[key]; exists {
 				//Causal CHECK @Jackie
 				// TODO: find this replicas VC
-				if (canDeliver(d.CausalMetadata, THISVC)){
-					d.CausalMetadata = updateVC(d.CausalMetadata, THISVC) // calculate new VC: max(senderVC, THISVC)
-					d.CausalMetadata[3] = localAddr	// set current position to this replica
+				color.Cyan("VECTOR CLOCK VALUE AT INDEX [%d]: %v\n", localAddr, currVC)
+				if canDeliver(d.CausalMetadata, currVC) {
+					d.CausalMetadata = updateVC(d.CausalMetadata, currVC) // calculate new VC: max(senderVC, currVC)
+					d.CausalMetadata[3] = localAddr                       // set current position to this replica
+					color.Cyan("VECTOR CLOCK VALUE AT INDEX [%d]: %v\n", localAddr, currVC)
 					dict[key] = StoreVal{d.Value, d.CausalMetadata}
 					c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
 				} else {
@@ -86,10 +88,11 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 					// place request in fifo buffer to serve request later
 				}
 			} else { // otherwise we insert a new key-value pair //
-				if (canDeliver(d.CausalMetadata, THISVC)){
-					// calculate new VC: max(senderVC, THISVC)
-					d.CausalMetadata = updateVC(d.CausalMetadata, THISVC) // calculate new VC: max(senderVC, THISVC)
-					d.CausalMetadata[3] = localAddr // set current position to this replica
+				color.Cyan("VECTOR CLOCK VALUE AT INDEX [%d]: %v\n", localAddr, currVC)
+				if canDeliver(d.CausalMetadata, currVC) {
+					// calculate new VC: max(senderVC, currVC)
+					d.CausalMetadata = updateVC(d.CausalMetadata, currVC) // calculate new VC: max(senderVC, currVC)
+					d.CausalMetadata[3] = localAddr                       // set current position to this replica
 					dict[key] = StoreVal{d.Value, d.CausalMetadata}
 					c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
 				} else {
@@ -106,7 +109,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 			println("Replicating message to: " + "http://" + view[i] + "/key-value-store-r/" + key)
 			c.Request.URL.Host = view[i]
 			c.Request.URL.Scheme = "http"
-			d.CausalMetadata[localAddr]++ // increment sender VC for send event
+			d.CausalMetadata[localAddr]++   // increment sender VC for send event
 			d.CausalMetadata[3] = localAddr //Index of sender address
 			data := &StoreVal{Value: d.Value, CausalMetadata: d.CausalMetadata}
 			jsonData, _ := json.Marshal(data)
@@ -138,7 +141,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 }
 
 //ReplicatePut Endpoint for replication
-func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
+func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string, currVC []int) {
 	var d StoreVal
 	r.PUT("/key-value-store-r/:key", func(c *gin.Context) {
 		key := c.Param("key")

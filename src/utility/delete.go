@@ -15,7 +15,7 @@ type Metadata struct {
 }
 
 //DeleteRequest Client endpoint for deletions
-func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
+func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string, currVC []int) {
 	var m Metadata
 	println(view)
 	r.DELETE("/key-value-store/:key", func(c *gin.Context) {
@@ -68,7 +68,7 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view 
 }
 
 //ReplicateDelete endpoint to replicate delete messages
-func ReplicateDelete(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
+func ReplicateDelete(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string, currVC []int) {
 	var m Metadata
 	r.DELETE("/key-value-store-r/:key", func(c *gin.Context) {
 		key := c.Param("key")
