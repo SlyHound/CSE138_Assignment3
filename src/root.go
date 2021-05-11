@@ -49,7 +49,7 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 		// fmt.Println("Check view in healthCheck after for:", view)
 
 		if !inReplica && newReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
-			// view = utility.RequestPut(view, personalSocketAddr, newReplica)
+			utility.RequestPut(view, personalSocketAddr, newReplica)
 			if len(kvStore) == 0 { // if the current key-value store is empty, then we need to retrieve k-v pairs from the other replica's
 				viewReceived, _ = utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
 				fmt.Println("Check GET response on values:", viewReceived)
