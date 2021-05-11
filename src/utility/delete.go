@@ -1,16 +1,22 @@
 package utility
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-//DeleteRequest Client endpoint for deletions
-func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view []string) {
+type Metadata struct {
+	CausalMetadata []int `json:"causal-metadata"`
+}
 
+//DeleteRequest Client endpoint for deletions
+func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
+	var m Metadata
 	println(view)
 	r.DELETE("/key-value-store/:key", func(c *gin.Context) {
 		key := c.Param("key")
@@ -18,6 +24,8 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, vi
 		// if the key-value pair exists, then delete it //
 		if _, exists := dict[key]; exists {
 			c.JSON(http.StatusOK, gin.H{"doesExist": true, "message": "Deleted successfully"})
+			m.CausalMetadata = dict[key].CausalMetadata //Index of sender address is put into causal clock here
+			m.CausalMetadata[3] = localAddr
 			delete(dict, key)
 		} else {
 			c.JSON(http.StatusNotFound, gin.H{"doesExist": false, "error": "Key does not exist", "message": "Error in DELETE"})
@@ -28,7 +36,9 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, vi
 			println("Replicating message to: " + "http://" + view[i] + "/key-value-store-r/" + key)
 			c.Request.URL.Host = view[i]
 			c.Request.URL.Scheme = "http"
-			fwdRequest, err := http.NewRequest("DELETE", "http://"+view[i]+"/key-value-store-r/"+key, nil)
+			data := &Metadata{CausalMetadata: m.CausalMetadata}
+			jsonData, _ := json.Marshal(data)
+			fwdRequest, err := http.NewRequest("DELETE", "http://"+view[i]+"/key-value-store-r/"+key, bytes.NewBuffer(jsonData))
 			if err != nil {
 				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 				return
@@ -45,6 +55,8 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, vi
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": view[i] + " is down", "message": msg})
 			}
 			if fwdResponse != nil {
+				//TODO
+				//Comment/delete to not chain requests back to client
 				body, _ := ioutil.ReadAll(fwdResponse.Body)
 				rawJSON := json.RawMessage(body)
 				c.JSON(fwdResponse.StatusCode, rawJSON)
@@ -56,10 +68,15 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, vi
 }
 
 //ReplicateDelete endpoint to replicate delete messages
-func ReplicateDelete(r *gin.Engine, dict map[string]StoreVal, local_addr string, view []string) {
+func ReplicateDelete(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
+	var m Metadata
 	r.DELETE("/key-value-store-r/:key", func(c *gin.Context) {
 		key := c.Param("key")
-
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		strBody := string(body[:])
+		fmt.Printf("STRBODY: %s\n", strBody)
+		json.Unmarshal(body, &m)
+		fmt.Printf("CAUSAL CLOCK VALUE: %v\n", m.CausalMetadata)
 		// if the key-value pair exists, then delete it //
 		if _, exists := dict[key]; exists {
 			c.JSON(http.StatusOK, gin.H{"doesExist": true, "message": "Deleted successfully"})

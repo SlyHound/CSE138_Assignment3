@@ -14,14 +14,13 @@ const (
 	keyLimit int = 50 // maximum number of characters allowed for a key
 )
 
-
 type StoreVal struct {
 	Value          string `json:"value"`
 	CausalMetadata []int  `json:"causal-metadata"`
 }
 
 //PutRequest for client interaction
-func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view []string) {
+func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
 	var d StoreVal
 	//receive request
 	r.PUT("/key-value-store/:key", func(c *gin.Context) {
@@ -51,10 +50,13 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 		}
 		//send replicas PUT as well
 		for i := 0; i < len(view); i++ {
+			//TODO
+			//refactor to skip vs remove in VC
 			//Causal INCREMENT @Jackie
 			println("Replicating message to: " + "http://" + view[i] + "/key-value-store-r/" + key)
 			c.Request.URL.Host = view[i]
 			c.Request.URL.Scheme = "http"
+			d.CausalMetadata[3] = localAddr //Index of sender address
 			data := &StoreVal{Value: d.Value, CausalMetadata: d.CausalMetadata}
 			jsonData, _ := json.Marshal(data)
 			fwdRequest, err := http.NewRequest("PUT", "http://"+view[i]+"/key-value-store-r/"+key, bytes.NewBuffer(jsonData))
@@ -85,7 +87,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr string, view 
 }
 
 //ReplicatePut Endpoint for replication
-func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, localAddr string, view []string) {
+func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
 	var d StoreVal
 	r.PUT("/key-value-store-r/:key", func(c *gin.Context) {
 		key := c.Param("key")
