@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -18,10 +19,8 @@ type sockAddr struct {
 view and the replica from all other replica's views */
 func RequestDelete(allSocketAddrs []string, personalSocketAddr string, indiciesToRemove map[int]string) []string {
 
-	personalIndex := 0 // personal index to remove element at //
 	for index, addr := range allSocketAddrs {
 		if addr == personalSocketAddr { // skip over the personal replica since we don't send to ourselves
-			personalIndex = index
 			continue
 		} else if indiciesToRemove[index] == addr { // if the element exists in the map, then delete it //
 
@@ -45,8 +44,19 @@ func RequestDelete(allSocketAddrs []string, personalSocketAddr string, indiciesT
 			defer response.Body.Close()
 		}
 	}
-	// might need to change this //
-	allSocketAddrs = append(allSocketAddrs[:personalIndex], allSocketAddrs[personalIndex+1:]...) // removes the replica we want //
+
+	var allKeys []int
+
+	// gets all the keys first to sort before removing all the replica's that failed to get a rqst back //
+	for index := range indiciesToRemove {
+		allKeys = append(allKeys, index)
+	}
+
+	sort.Ints(allKeys)
+	for index := range allKeys {
+		allSocketAddrs = append(allSocketAddrs[:index], allSocketAddrs[index+1:]...)
+	}
+
 	fmt.Println("Check allSocketAddrs in rqstDelete:", allSocketAddrs)
 	return allSocketAddrs
 }
