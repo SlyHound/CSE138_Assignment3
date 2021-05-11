@@ -19,6 +19,40 @@ type StoreVal struct {
 	CausalMetadata []int  `json:"causal-metadata"`
 }
 
+func canDeliver(senderVC []int, replicaVC []int) bool {
+	// conditions for delivery:
+	//      senderVC[senderslot] = replicaVC[senderslot] + 1
+	//      senderVC[notsender] <= replicaVC[not sender]
+	senderID := senderVC[3]	// sender position in VC
+	
+	for i := 0; i < 3; i++ {
+		if i == senderID and senderVC[i] != replicaVC[i] + 1 {
+			return false
+		} else if i != senderID and senderVC[i] > replicaVC[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func max(x int, y int) int {
+	if x < y {
+		return y
+	}
+	return x
+}
+
+// calculate new VC: max(senderVC, replicaVC)
+func updateVC(senderVC []int, replicaVC []int) []int {
+	var newVC [4]int
+	for i := 0; i < 3; i++ {
+		newVC[i] = max(senderVC[i], replicaVC[i])
+	}
+	return newVC
+}
+
+
 //PutRequest for client interaction
 func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
 	var d StoreVal
@@ -41,11 +75,27 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 			// TO-DO: implement causal consistency and compare causal-metadata here
 			if _, exists := dict[key]; exists {
 				//Causal CHECK @Jackie
-				dict[key] = StoreVal{d.Value, d.CausalMetadata}
-				c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
+				// TODO: find this replicas VC
+				if (canDeliver(d.CausalMetadata, THISVC)){
+					d.CausalMetadata = updateVC(d.CausalMetadata, THISVC) // calculate new VC: max(senderVC, THISVC)
+					d.CausalMetadata[3] = localAddr	// set current position to this replica
+					dict[key] = StoreVal{d.Value, d.CausalMetadata}
+					c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
+				} else {
+					// not ready to be delivered
+					// place request in fifo buffer to serve request later
+				}
 			} else { // otherwise we insert a new key-value pair //
-				dict[key] = StoreVal{d.Value, d.CausalMetadata}
-				c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
+				if (canDeliver(d.CausalMetadata, THISVC)){
+					// calculate new VC: max(senderVC, THISVC)
+					d.CausalMetadata = updateVC(d.CausalMetadata, THISVC) // calculate new VC: max(senderVC, THISVC)
+					d.CausalMetadata[3] = localAddr // set current position to this replica
+					dict[key] = StoreVal{d.Value, d.CausalMetadata}
+					c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
+				} else {
+					// not ready to be delivered
+					// place request in fifo buffer to serve request later
+				}
 			}
 		}
 		//send replicas PUT as well
@@ -56,6 +106,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 			println("Replicating message to: " + "http://" + view[i] + "/key-value-store-r/" + key)
 			c.Request.URL.Host = view[i]
 			c.Request.URL.Scheme = "http"
+			d.CausalMetadata[localAddr]++ // increment sender VC for send event
 			d.CausalMetadata[3] = localAddr //Index of sender address
 			data := &StoreVal{Value: d.Value, CausalMetadata: d.CausalMetadata}
 			jsonData, _ := json.Marshal(data)
