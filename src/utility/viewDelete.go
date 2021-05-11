@@ -62,12 +62,14 @@ func RequestDelete(allSocketAddrs []string, personalSocketAddr string, indiciesT
 		}
 	}
 
+	allSocketAddrs = DeleteDuplicates(allSocketAddrs)
 	fmt.Println("Check allSocketAddrs in rqstDelete:", allSocketAddrs)
 	return allSocketAddrs
 }
 
-func ResponseDelete(r *gin.Engine, view []string) {
+func ResponseDelete(r *gin.Engine, channel chan []string) {
 	var d sockAddr
+	view := <-channel // this should really be in r.DELETE part, but causes a deadlock due to read dependency here and the other waiting for a response back
 	r.DELETE("/key-value-store-view", func(c *gin.Context) {
 		body, err := ioutil.ReadAll(c.Request.Body)
 
@@ -96,6 +98,7 @@ func ResponseDelete(r *gin.Engine, view []string) {
 		// if the passed in socket address is present in the current replica's view, then delete it, else 404 error //
 		if presentInView {
 			view = append(view[:oIndex], view[oIndex+1:]...) // deletes the replica from the current view that received the DELETE rqst. //
+			channel <- view
 			fmt.Println("Check view in respDelete:", view)
 			c.JSON(http.StatusOK, gin.H{"message": "Replica deleted successfully from the view"})
 		} else {

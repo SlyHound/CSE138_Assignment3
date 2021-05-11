@@ -24,7 +24,7 @@ endpoint is as follows: /key-value-store-view
 */
 
 // checks to ensure that replica's are up by broadcasting GET requests //
-func healthCheck(view []string, personalSocketAddr string, kvStore map[string]string) {
+func healthCheck(view []string, personalSocketAddr string, kvStore map[string]string, channel chan []string) {
 
 	// runs infinitely on a 1 second clock interval //
 	interval := time.Tick(time.Second * 1)
@@ -37,6 +37,7 @@ func healthCheck(view []string, personalSocketAddr string, kvStore map[string]st
 		/* call upon RequestDelete to delete the replica from its own view and
 		   broadcast to other replica's to delete that same replica from their view */
 		view = utility.RequestDelete(view, personalSocketAddr, noResponseIndices)
+		channel <- view
 
 		fmt.Println("Check view in healthCheck before for:", view)
 		inReplica := false
@@ -56,7 +57,8 @@ func healthCheck(view []string, personalSocketAddr string, kvStore map[string]st
 		// fmt.Println("Check view in healthCheck after for:", view)
 
 		if !inReplica && newReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
-			utility.RequestPut(view, personalSocketAddr, newReplica)
+			view = utility.RequestPut(view, personalSocketAddr, newReplica)
+			channel <- view
 			if len(kvStore) == 0 { // if the current key-value store is empty, then we need to retrieve k-v pairs from the other replica's
 				response, _ = utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
 				fmt.Println("Check GET response on values:", response)
@@ -65,10 +67,10 @@ func healthCheck(view []string, personalSocketAddr string, kvStore map[string]st
 	}
 }
 
-func variousResponses(router *gin.Engine, view []string, store map[string]string) {
-	utility.ResponseGet(router, view)
-	utility.ResponseDelete(router, view)
-	utility.ResponsePut(router, view)
+func variousResponses(router *gin.Engine, store map[string]string, channel chan []string) {
+	utility.ResponseGet(router, channel)
+	utility.ResponseDelete(router, channel)
+	utility.ResponsePut(router, channel)
 	utility.KeyValueResponse(router, store)
 }
 
@@ -81,8 +83,10 @@ func main() {
 	personalSocketAddr := os.Getenv("SOCKET_ADDRESS")
 	view := strings.Split(os.Getenv("VIEW"), ",")
 
-	go healthCheck(view, personalSocketAddr, kvStore)
-	variousResponses(router, view, kvStore)
+	channel := make(chan []string, 3) // create a buffered channel of 3 before it blocks the other thread from reading/writing the view
+
+	go healthCheck(view, personalSocketAddr, kvStore, channel)
+	variousResponses(router, kvStore, channel)
 
 	err := router.Run(port)
 

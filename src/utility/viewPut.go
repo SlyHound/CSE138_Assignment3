@@ -14,7 +14,7 @@ type dict struct {
 	Key, Value string
 }
 
-func RequestPut(allSocketAddrs []string, personalSocketAddr string, newSocketAddr string) {
+func RequestPut(allSocketAddrs []string, personalSocketAddr string, newSocketAddr string) []string {
 
 	// first add the new replica to the current view //
 	allSocketAddrs = append(allSocketAddrs, newSocketAddr)
@@ -46,12 +46,15 @@ func RequestPut(allSocketAddrs []string, personalSocketAddr string, newSocketAdd
 		}
 		defer response.Body.Close()
 	}
+	allSocketAddrs = DeleteDuplicates(allSocketAddrs)
+	return allSocketAddrs
 }
 
-func ResponsePut(r *gin.Engine, view []string) {
+func ResponsePut(r *gin.Engine, channel chan []string) {
 
 	var d dict
 	r.PUT("/key-value-store-view", func(c *gin.Context) {
+		view := <-channel
 		body, err := ioutil.ReadAll(c.Request.Body)
 
 		if err != nil {

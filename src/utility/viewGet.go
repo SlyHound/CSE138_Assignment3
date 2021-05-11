@@ -55,7 +55,8 @@ func RequestGet(allSocketAddrs []string, personalSocketAddr string, endpoint str
 	return v.View, noResponseIndices
 }
 
-func ResponseGet(r *gin.Engine, view []string) {
+func ResponseGet(r *gin.Engine, channel chan []string) {
+	view := <-channel // this should really be in r.GET part, but causes a deadlock due to read dependency here and the other waiting for a response back
 	r.GET("/key-value-store-view", func(c *gin.Context) {
 		view = DeleteDuplicates(view)
 		c.JSON(http.StatusOK, gin.H{"message": "View retrieved successfully", "view": view})
