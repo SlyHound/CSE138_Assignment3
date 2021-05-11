@@ -26,22 +26,19 @@ endpoint is as follows: /key-value-store-view
 // checks to ensure that replica's are up by broadcasting GET requests //
 func healthCheck(view []string, personalSocketAddr string, kvStore map[string]string) {
 
-	// viewSocketAddrs := make([]string, numReplicas) // there can at most be two other views
-	// index := 0
-	// for _, currentView := range view {
-	// 	if currentView != personalSocketAddr {
-	// 		viewSocketAddrs[index] = currentView
-	// 		index += 1
-	// 	}
-	// }
-
 	// runs infinitely on a 1 second clock interval //
 	interval := time.Tick(time.Second * 1)
 	for range interval {
 		/* If a request returns with a view having # of replicas > current view
 		   then broadcast a PUT request (this means a replica has been added to the system) */
-		response := utility.RequestGet(view, personalSocketAddr, "/key-value-store-view")
+		response, noResponseIndices := utility.RequestGet(view, personalSocketAddr, "/key-value-store-view")
+
+		/* call upon RequestDelete to delete the replica from its own view and
+		   broadcast to other replica's to delete that same replica from their view */
+		view = utility.RequestDelete(view, personalSocketAddr, noResponseIndices)
+
 		fmt.Println("Check response received:", response)
+		// fmt.Println("Check view in healthCheck before for:", view)
 		inReplica := false
 		newReplica := ""
 
@@ -56,10 +53,12 @@ func healthCheck(view []string, personalSocketAddr string, kvStore map[string]st
 			}
 		}
 
+		// fmt.Println("Check view in healthCheck after for:", view)
+
 		if !inReplica && newReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
 			utility.RequestPut(view, personalSocketAddr, newReplica)
 			if len(kvStore) == 0 { // if the current key-value store is empty, then we need to retrieve k-v pairs from the other replica's
-				response = utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
+				response, _ = utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
 				fmt.Println("Check GET response on values:", response)
 			}
 		}

@@ -22,7 +22,7 @@ func RequestPut(allSocketAddrs []string, personalSocketAddr string, newSocketAdd
 	// now broadcast a PUT request to all other replica's to add it to their view's //
 	data := strings.NewReader(`{"socket-address":` + newSocketAddr + `}`)
 	for index, addr := range allSocketAddrs {
-		if addr == personalSocketAddr { // skip over the personal replica since we don't send to ourselves
+		if addr == personalSocketAddr || index >= len(allSocketAddrs) { // skip over the personal replica since we don't send to ourselves
 			continue
 		}
 		request, err := http.NewRequest("PUT", "http://"+allSocketAddrs[index]+"/key-value-store-view", data)
@@ -41,7 +41,7 @@ func RequestPut(allSocketAddrs []string, personalSocketAddr string, newSocketAdd
 			fmt.Println("There was an error sending a PUT request to " + allSocketAddrs[index])
 			/* call upon RequestDelete to delete the replica from its own view and
 			   broadcast to other replica's to delete that same replica from their view */
-			allSocketAddrs = RequestDelete(allSocketAddrs, personalSocketAddr, index)
+			// allSocketAddrs = RequestDelete(allSocketAddrs, personalSocketAddr, index)
 			continue
 		}
 		defer response.Body.Close()
