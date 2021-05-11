@@ -7,25 +7,31 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
 
-type sockAddr struct {
+type SockAddr struct {
 	Address string `json:"socket-address"`
+}
+
+type Mutex struct {
+	Mutex sync.Mutex
 }
 
 /* this function deletes the replica from its own
 view and the replica from all other replica's views */
-func RequestDelete(allSocketAddrs []string, personalSocketAddr string, indiciesToRemove map[int]string) []string {
+func RequestDelete(v *View, personalSocketAddr string, indiciesToRemove map[int]string) {
+	var mu Mutex
 
-	for index, addr := range allSocketAddrs {
+	for index, addr := range v.PersonalView {
 		if addr == personalSocketAddr { // skip over the personal replica since we don't send to ourselves
 			continue
 		} else if indiciesToRemove[index] == addr { // if the element exists in the map, then delete it //
 
-			data := strings.NewReader(`{"socket-address":"` + allSocketAddrs[index] + `"}`)
-			request, err := http.NewRequest("DELETE", "http://"+allSocketAddrs[index]+"/key-value-store-view", data)
+			data := strings.NewReader(`{"socket-address":"` + v.PersonalView[index] + `"}`)
+			request, err := http.NewRequest("DELETE", "http://"+v.PersonalView[index]+"/key-value-store-view", data)
 
 			if err != nil {
 				fmt.Println("There was an error creating a DELETE request.")
@@ -38,7 +44,7 @@ func RequestDelete(allSocketAddrs []string, personalSocketAddr string, indiciesT
 			response, err := httpForwarder.Do(request)
 
 			if err != nil { // if a response doesn't come back, then that replica might be down
-				fmt.Println("There was an error sending a DELETE request to " + allSocketAddrs[index])
+				fmt.Println("There was an error sending a DELETE request to " + v.PersonalView[index])
 				continue
 			}
 			defer response.Body.Close()
@@ -54,22 +60,26 @@ func RequestDelete(allSocketAddrs []string, personalSocketAddr string, indiciesT
 	fmt.Println("Check allKeys:", allKeys)
 
 	sort.Ints(allKeys)
+
+	mu.Mutex.Lock()
 	for _, index := range allKeys {
-		if index+1 < len(allSocketAddrs) {
-			allSocketAddrs = append(allSocketAddrs[:index], allSocketAddrs[index+1:]...)
-		} else {
-			allSocketAddrs = allSocketAddrs[:len(allSocketAddrs)-1]
+		if indiciesToRemove[index] == v.PersonalView[index] { // if the replica hasn't been removed yet, then remove it
+			if index+1 < len(v.PersonalView) {
+				v.PersonalView = append(v.PersonalView[:index], v.PersonalView[index+1:]...)
+			} else {
+				v.PersonalView = v.PersonalView[:len(v.PersonalView)-1]
+			}
 		}
 	}
+	mu.Mutex.Unlock()
 
-	allSocketAddrs = DeleteDuplicates(allSocketAddrs)
-	fmt.Println("Check allSocketAddrs in rqstDelete:", allSocketAddrs)
-	return allSocketAddrs
+	// v = DeleteDuplicates(v)
+	fmt.Println("Check allSocketAddrs in rqstDelete:", v)
 }
 
-func ResponseDelete(r *gin.Engine, channel chan []string) {
-	var d sockAddr
-	view := <-channel // this should really be in r.DELETE part, but causes a deadlock due to read dependency here and the other waiting for a response back
+func ResponseDelete(r *gin.Engine, view *View) {
+	var d SockAddr
+	var mu Mutex
 	r.DELETE("/key-value-store-view", func(c *gin.Context) {
 		body, err := ioutil.ReadAll(c.Request.Body)
 
@@ -87,7 +97,7 @@ func ResponseDelete(r *gin.Engine, channel chan []string) {
 		presentInView := false
 		oIndex := 0
 
-		for index, viewSocketAddr := range view {
+		for index, viewSocketAddr := range view.PersonalView {
 			if d.Address == viewSocketAddr {
 				presentInView = true
 				oIndex = index
@@ -97,8 +107,9 @@ func ResponseDelete(r *gin.Engine, channel chan []string) {
 
 		// if the passed in socket address is present in the current replica's view, then delete it, else 404 error //
 		if presentInView {
-			view = append(view[:oIndex], view[oIndex+1:]...) // deletes the replica from the current view that received the DELETE rqst. //
-			channel <- view
+			mu.Mutex.Lock()
+			view.PersonalView = append(view.PersonalView[:oIndex], view.PersonalView[oIndex+1:]...) // deletes the replica from the current view that received the DELETE rqst. //
+			mu.Mutex.Unlock()
 			fmt.Println("Check view in respDelete:", view)
 			c.JSON(http.StatusOK, gin.H{"message": "Replica deleted successfully from the view"})
 		} else {

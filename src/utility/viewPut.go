@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type dict struct {
+type Dict struct {
 	Key, Value string
 }
 
@@ -50,11 +50,10 @@ func RequestPut(allSocketAddrs []string, personalSocketAddr string, newSocketAdd
 	return allSocketAddrs
 }
 
-func ResponsePut(r *gin.Engine, channel chan []string) {
+func ResponsePut(r *gin.Engine, view *View) {
 
-	var d dict
+	var d Dict
 	r.PUT("/key-value-store-view", func(c *gin.Context) {
-		view := <-channel
 		body, err := ioutil.ReadAll(c.Request.Body)
 
 		if err != nil {
@@ -64,12 +63,12 @@ func ResponsePut(r *gin.Engine, channel chan []string) {
 
 		strBody := string(body[:])
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
-		view = append(view, d.Value) // adds the new replica to the view //
+		view.PersonalView = append(view.PersonalView, d.Value) // adds the new replica to the view //
 		defer c.Request.Body.Close()
 
 		presentInView := false
 
-		for _, viewSocketAddr := range view {
+		for _, viewSocketAddr := range view.PersonalView {
 			if d.Value == viewSocketAddr {
 				presentInView = true
 				break

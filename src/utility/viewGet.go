@@ -15,18 +15,21 @@ type get struct {
 	View    []string
 }
 
+type View struct {
+	PersonalView []string
+}
+
 /* this function will broadcast a GET request from one replica to all other
    replica's to ensure that they are currently up. */
-func RequestGet(allSocketAddrs []string, personalSocketAddr string, endpoint string) ([]string, map[int]string) {
-	var v get
+func RequestGet(v *View, personalSocketAddr string, endpoint string) ([]string, map[int]string) {
+	var g get
 	noResponseIndices := make(map[int]string)
-	for index, addr := range allSocketAddrs {
-		if addr == personalSocketAddr || index >= len(allSocketAddrs) { // skip over the personal replica since we don't send to ourselves
+	for index, addr := range v.PersonalView {
+		if addr == personalSocketAddr || index >= len(v.PersonalView) { // skip over the personal replica since we don't send to ourselves
 			continue
 		}
-		// insanity is doing something over and over again and excepting a different result each time -> me right now ): //
-		fmt.Println("allSocketAddrs[index], index:", allSocketAddrs[index], index)
-		request, err := http.NewRequest("GET", "http://"+allSocketAddrs[index]+endpoint, nil)
+		fmt.Println("allSocketAddrs[index], index:", v.PersonalView[index], index)
+		request, err := http.NewRequest("GET", "http://"+v.PersonalView[index]+endpoint, nil)
 
 		if err != nil {
 			fmt.Println("There was an error creating a GET request with the following error:", err.Error())
@@ -37,8 +40,8 @@ func RequestGet(allSocketAddrs []string, personalSocketAddr string, endpoint str
 		response, err := httpForwarder.Do(request)
 
 		if err != nil { // if a response doesn't come back, then that replica might be down
-			fmt.Println("There was an error sending a GET request to " + allSocketAddrs[index])
-			noResponseIndices[index] = allSocketAddrs[index]
+			fmt.Println("There was an error sending a GET request to " + v.PersonalView[index])
+			noResponseIndices[index] = v.PersonalView[index]
 			continue
 		}
 		// fmt.Println("Check response.Body in RequestGet:", response.Body)
@@ -46,20 +49,19 @@ func RequestGet(allSocketAddrs []string, personalSocketAddr string, endpoint str
 		body, _ := ioutil.ReadAll(response.Body)
 		strBody := string(body[:])
 		fmt.Println("Check strBody in RequestGet:", strBody)
-		json.NewDecoder(strings.NewReader(strBody)).Decode(&v)
+		json.NewDecoder(strings.NewReader(strBody)).Decode(&g)
 		// fmt.Println("Check v.View, V.Message in RequestGet:", v.View, v.Message)
-		fmt.Println("Checking allSocketAddrs at end of rqstGet:", allSocketAddrs)
+		fmt.Println("Checking allSocketAddrs at end of rqstGet:", v)
 	}
-	fmt.Println("Check the v.View is about to be returned:", v.View)
-	fmt.Println("Check allSocketAddrs before returning v.View:", allSocketAddrs)
-	return v.View, noResponseIndices
+	fmt.Println("Check the v.View is about to be returned:", g.View)
+	fmt.Println("Check allSocketAddrs before returning v.View:", v)
+	return g.View, noResponseIndices
 }
 
-func ResponseGet(r *gin.Engine, channel chan []string) {
-	view := <-channel // this should really be in r.GET part, but causes a deadlock due to read dependency here and the other waiting for a response back
+func ResponseGet(r *gin.Engine, view *View) {
 	r.GET("/key-value-store-view", func(c *gin.Context) {
-		view = DeleteDuplicates(view)
-		c.JSON(http.StatusOK, gin.H{"message": "View retrieved successfully", "view": view})
+		// view = DeleteDuplicates()
+		c.JSON(http.StatusOK, gin.H{"message": "View retrieved successfully", "view": view.PersonalView})
 	})
 }
 

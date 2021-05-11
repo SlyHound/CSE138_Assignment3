@@ -8,6 +8,6 @@ COPY src/go.sum .
 RUN go mod download
 COPY src .
 
-RUN go build
+RUN go build -race
 
 CMD ["./src"]

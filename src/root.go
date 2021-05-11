@@ -16,37 +16,29 @@ const (
 	numReplicas = 2
 )
 
-/*
-replica addresses are as follows:
-10.0.0.2, 10.0.0.3, 10.0.0.4
-with port number 8085
-endpoint is as follows: /key-value-store-view
-*/
-
 // checks to ensure that replica's are up by broadcasting GET requests //
-func healthCheck(view []string, personalSocketAddr string, kvStore map[string]string, channel chan []string) {
+func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[string]string) {
 
 	// runs infinitely on a 1 second clock interval //
 	interval := time.Tick(time.Second * 1)
 	for range interval {
 		/* If a request returns with a view having # of replicas > current view
 		   then broadcast a PUT request (this means a replica has been added to the system) */
-		response, noResponseIndices := utility.RequestGet(view, personalSocketAddr, "/key-value-store-view")
-		fmt.Println("Check response received:", response, noResponseIndices)
+		viewReceived, noResponseIndices := utility.RequestGet(view, personalSocketAddr, "/key-value-store-view")
+		fmt.Println("Check response received:", viewReceived, noResponseIndices)
 
 		/* call upon RequestDelete to delete the replica from its own view and
 		   broadcast to other replica's to delete that same replica from their view */
-		view = utility.RequestDelete(view, personalSocketAddr, noResponseIndices)
-		channel <- view
+		utility.RequestDelete(view, personalSocketAddr, noResponseIndices)
 
 		fmt.Println("Check view in healthCheck before for:", view)
 		inReplica := false
 		newReplica := ""
 
-		for _, recvSocketAddr := range response {
+		for _, recvSocketAddr := range viewReceived {
 			inReplica = false
 			newReplica = recvSocketAddr
-			for _, viewSocketAddr := range view {
+			for _, viewSocketAddr := range view.PersonalView { // iterate over current replica's view
 				if viewSocketAddr == recvSocketAddr {
 					inReplica = true
 					break
@@ -57,20 +49,20 @@ func healthCheck(view []string, personalSocketAddr string, kvStore map[string]st
 		// fmt.Println("Check view in healthCheck after for:", view)
 
 		if !inReplica && newReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
-			view = utility.RequestPut(view, personalSocketAddr, newReplica)
-			channel <- view
+			// view = utility.RequestPut(view, personalSocketAddr, newReplica)
 			if len(kvStore) == 0 { // if the current key-value store is empty, then we need to retrieve k-v pairs from the other replica's
-				response, _ = utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
-				fmt.Println("Check GET response on values:", response)
+				viewReceived, _ = utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
+				fmt.Println("Check GET response on values:", viewReceived)
+				// TODO: update the current replica's key-value store with that of the received view's
 			}
 		}
 	}
 }
 
-func variousResponses(router *gin.Engine, store map[string]string, channel chan []string) {
-	utility.ResponseGet(router, channel)
-	utility.ResponseDelete(router, channel)
-	utility.ResponsePut(router, channel)
+func variousResponses(router *gin.Engine, store map[string]string, view *utility.View) {
+	utility.ResponseGet(router, view)
+	utility.ResponseDelete(router, view)
+	utility.ResponsePut(router, view)
 	utility.KeyValueResponse(router, store)
 }
 
@@ -83,10 +75,11 @@ func main() {
 	personalSocketAddr := os.Getenv("SOCKET_ADDRESS")
 	view := strings.Split(os.Getenv("VIEW"), ",")
 
-	channel := make(chan []string, 3) // create a buffered channel of 3 before it blocks the other thread from reading/writing the view
+	v := &utility.View{}
+	v.PersonalView = append(v.PersonalView, view...)
 
-	go healthCheck(view, personalSocketAddr, kvStore, channel)
-	variousResponses(router, kvStore, channel)
+	go healthCheck(v, personalSocketAddr, kvStore)
+	variousResponses(router, kvStore, v)
 
 	err := router.Run(port)
 
