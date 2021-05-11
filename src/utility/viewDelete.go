@@ -51,10 +51,15 @@ func RequestDelete(allSocketAddrs []string, personalSocketAddr string, indiciesT
 	for index := range indiciesToRemove {
 		allKeys = append(allKeys, index)
 	}
+	fmt.Println("Check allKeys:", allKeys)
 
 	sort.Ints(allKeys)
-	for index := range allKeys {
-		allSocketAddrs = append(allSocketAddrs[:index], allSocketAddrs[index+1:]...)
+	for _, index := range allKeys {
+		if index+1 < len(allSocketAddrs) {
+			allSocketAddrs = append(allSocketAddrs[:index], allSocketAddrs[index+1:]...)
+		} else {
+			allSocketAddrs = allSocketAddrs[:len(allSocketAddrs)-1]
+		}
 	}
 
 	fmt.Println("Check allSocketAddrs in rqstDelete:", allSocketAddrs)

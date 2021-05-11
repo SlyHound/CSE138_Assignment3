@@ -32,13 +32,13 @@ func healthCheck(view []string, personalSocketAddr string, kvStore map[string]st
 		/* If a request returns with a view having # of replicas > current view
 		   then broadcast a PUT request (this means a replica has been added to the system) */
 		response, noResponseIndices := utility.RequestGet(view, personalSocketAddr, "/key-value-store-view")
-		fmt.Println("Check response received:", response)
+		fmt.Println("Check response received:", response, noResponseIndices)
 
 		/* call upon RequestDelete to delete the replica from its own view and
 		   broadcast to other replica's to delete that same replica from their view */
 		view = utility.RequestDelete(view, personalSocketAddr, noResponseIndices)
 
-		// fmt.Println("Check view in healthCheck before for:", view)
+		fmt.Println("Check view in healthCheck before for:", view)
 		inReplica := false
 		newReplica := ""
 
