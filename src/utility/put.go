@@ -69,18 +69,21 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 
 			httpForwarder := &http.Client{}
 			fwdResponse, err := httpForwarder.Do(fwdRequest)
+			_ = fwdResponse
 
 			// Shouldn't worry about Error checking? just send requests out and if things are down oh well?
-			if err != nil {
-				msg := "Error in " + fwdRequest.Method
-				c.JSON(http.StatusServiceUnavailable, gin.H{"error": view[i] + " is down", "message": msg})
-			}
-			if fwdResponse != nil {
-				body, _ := ioutil.ReadAll(fwdResponse.Body)
-				rawJSON := json.RawMessage(body)
-				c.JSON(fwdResponse.StatusCode, rawJSON)
-				defer fwdResponse.Body.Close()
-			}
+			//TODO
+			//USE THIS CATCH TO SEE IF SERVER IS DOWN AND UPDATE IN VIEW @Alex
+			// if err != nil {
+			// 	msg := "Error in " + fwdRequest.Method
+			// 	c.JSON(http.StatusServiceUnavailable, gin.H{"error": view[i] + " is down", "message": msg})
+			// }
+			// if fwdResponse != nil {
+			// 	body, _ := ioutil.ReadAll(fwdResponse.Body)
+			// 	rawJSON := json.RawMessage(body)
+			// 	c.JSON(fwdResponse.StatusCode, rawJSON)
+			// 	defer fwdResponse.Body.Close()
+			// }
 		}
 
 	})
