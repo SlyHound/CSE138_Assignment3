@@ -30,6 +30,7 @@ func canDeliver(senderVC []int, replicaVC []int) bool {
 		if i == senderID && senderVC[i] != replicaVC[i]+1 {
 			return false
 		} else if i != senderID && senderVC[i] > replicaVC[i] {
+			fmt.Println("canDeliver: WE CAN'T DELIVER!!")
 			return false
 		}
 	}
@@ -48,6 +49,8 @@ func max(x int, y int) int {
 func updateVC(senderVC []int, replicaVC []int) []int {
 	var newVC []int
 	for i := 0; i < 3; i++ {
+		fmt.Printf("UPDATING SENDERVC: %v\n", senderVC)
+		fmt.Printf("UPDATING REPLICAVC: %v\n", replicaVC)
 		newVC[i] = max(senderVC[i], replicaVC[i])
 	}
 	return newVC
@@ -93,6 +96,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 					// calculate new VC: max(senderVC, currVC)
 					d.CausalMetadata = updateVC(d.CausalMetadata, currVC) // calculate new VC: max(senderVC, currVC)
 					d.CausalMetadata[3] = localAddr                       // set current position to this replica
+					color.Cyan("VECTOR CLOCK VALUE AT INDEX [%d]: %v\n", localAddr, currVC)
 					dict[key] = StoreVal{d.Value, d.CausalMetadata}
 					c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
 				} else {
