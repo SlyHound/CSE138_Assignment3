@@ -23,12 +23,12 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view 
 
 		// if the key-value pair exists, then delete it //
 		if _, exists := dict[key]; exists {
-			c.JSON(http.StatusOK, gin.H{"doesExist": true, "message": "Deleted successfully"})
 			m.CausalMetadata = dict[key].CausalMetadata //Index of sender address is put into causal clock here
+			c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "causal-metadata": m.CausalMetadata})
 			m.CausalMetadata[3] = localAddr
 			delete(dict, key)
 		} else {
-			c.JSON(http.StatusNotFound, gin.H{"doesExist": false, "error": "Key does not exist", "message": "Error in DELETE"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Key does not exist", "message": "Error in DELETE"})
 		}
 
 		//Broadcast delete to all other replicas
@@ -81,10 +81,11 @@ func ReplicateDelete(r *gin.Engine, dict map[string]StoreVal, localAddr int, vie
 		fmt.Printf("CAUSAL CLOCK VALUE: %v\n", m.CausalMetadata)
 		// if the key-value pair exists, then delete it //
 		if _, exists := dict[key]; exists {
-			c.JSON(http.StatusOK, gin.H{"doesExist": true, "message": "Deleted successfully"})
+			m.CausalMetadata = dict[key].CausalMetadata
+			c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "causal-metadata": m.CausalMetadata})
 			delete(dict, key)
 		} else {
-			c.JSON(http.StatusNotFound, gin.H{"doesExist": false, "error": "Key does not exist", "message": "Error in DELETE"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Key does not exist", "message": "Error in DELETE"})
 		}
 	})
 }

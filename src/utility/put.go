@@ -42,10 +42,10 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 			if _, exists := dict[key]; exists {
 				//Causal CHECK @Jackie
 				dict[key] = StoreVal{d.Value, d.CausalMetadata}
-				c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
+				c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true, "causal-metadata": d.CausalMetadata})
 			} else { // otherwise we insert a new key-value pair //
 				dict[key] = StoreVal{d.Value, d.CausalMetadata}
-				c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
+				c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false, "causal-metadata": d.CausalMetadata})
 			}
 		}
 		//send replicas PUT as well
@@ -109,10 +109,10 @@ func ReplicatePut(r *gin.Engine, dict map[string]StoreVal, localAddr int, view [
 			// TO-DO: implement causal consistency and compare causal-metadata here
 			if _, exists := dict[key]; exists {
 				dict[key] = StoreVal{d.Value, d.CausalMetadata}
-				c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
+				c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true, "causal-metadata": d.CausalMetadata})
 			} else { // otherwise we insert a new key-value pair //
 				dict[key] = StoreVal{d.Value, d.CausalMetadata}
-				c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false})
+				c.JSON(http.StatusCreated, gin.H{"message": "Added successfully", "replaced": false, "causal-metadata": d.CausalMetadata})
 			}
 		}
 	})
