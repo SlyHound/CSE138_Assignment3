@@ -11,15 +11,14 @@ import (
 )
 
 type Dict struct {
-	Key, Value string
+	Address string `json:"socket-address"`
 }
 
 func RequestPut(v *View, personalSocketAddr string, newSocketAddr string) {
 
-	var mu Mutex
-
 	// now broadcast a PUT request to all other replica's to add it to their view's //
-	data := strings.NewReader(`{"socket-address":` + newSocketAddr + `}`)
+	data := strings.NewReader(`{"socket-address":"` + newSocketAddr + `"}`)
+	Mu.Mutex.Lock()
 	for index, addr := range v.PersonalView {
 		if addr == personalSocketAddr || index >= len(v.PersonalView) { // skip over the personal replica since we don't send to ourselves
 			continue
@@ -38,13 +37,11 @@ func RequestPut(v *View, personalSocketAddr string, newSocketAddr string) {
 
 		if err != nil { // if a response doesn't come back, then that replica might be down
 			fmt.Println("There was an error sending a PUT request to " + v.PersonalView[index])
-			/* call upon RequestDelete to delete the replica from its own view and
-			   broadcast to other replica's to delete that same replica from their view */
-			// allSocketAddrs = RequestDelete(allSocketAddrs, personalSocketAddr, index)
 			continue
 		}
 		defer response.Body.Close()
 	}
+	Mu.Mutex.Unlock()
 
 	addedAlready := false
 	for index := range v.PersonalView {
@@ -56,16 +53,15 @@ func RequestPut(v *View, personalSocketAddr string, newSocketAddr string) {
 
 	// add the new replica to the current view if it hasn't already been added //
 	if !addedAlready {
-		mu.Mutex.Lock()
+		Mu.Mutex.Lock()
 		v.PersonalView = append(v.PersonalView, newSocketAddr)
-		mu.Mutex.Unlock()
+		Mu.Mutex.Unlock()
 	}
 }
 
 func ResponsePut(r *gin.Engine, view *View) {
 	var (
-		d  Dict
-		mu Mutex
+		d Dict
 	)
 
 	r.PUT("/key-value-store-view", func(c *gin.Context) {
@@ -78,20 +74,20 @@ func ResponsePut(r *gin.Engine, view *View) {
 
 		strBody := string(body[:])
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
-		mu.Mutex.Lock()
-		view.PersonalView = append(view.PersonalView, d.Value) // adds the new replica to the view //
-		mu.Mutex.Unlock()
-		defer c.Request.Body.Close()
+		Mu.Mutex.Lock()
+		view.PersonalView = append(view.PersonalView, d.Address) // adds the new replica to the view //
 
 		presentInView := false
 
 		for _, viewSocketAddr := range view.PersonalView {
-			if d.Value == viewSocketAddr {
+			if d.Address == viewSocketAddr {
 				presentInView = true
 				break
 			}
 		}
+		Mu.Mutex.Unlock()
 
+		c.Request.Body.Close()
 		if presentInView {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Socket address already exists in the view", "message": "Error in PUT"})
 		} else {

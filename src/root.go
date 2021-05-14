@@ -35,13 +35,15 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 		inReplica := false
 		newReplica := ""
 
-		for _, recvSocketAddr := range viewReceived {
-			inReplica = false
-			newReplica = recvSocketAddr
-			for _, viewSocketAddr := range view.PersonalView { // iterate over current replica's view
-				if viewSocketAddr == recvSocketAddr {
-					inReplica = true
-					break
+		if len(viewReceived) > 0 {
+			for _, viewSocketAddr := range view.PersonalView {
+				inReplica = false
+				newReplica = viewSocketAddr
+				for _, recvSocketAddr := range viewReceived {
+					if viewSocketAddr == recvSocketAddr {
+						inReplica = true
+						break
+					}
 				}
 			}
 		}

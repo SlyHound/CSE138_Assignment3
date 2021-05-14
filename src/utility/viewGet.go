@@ -22,8 +22,12 @@ type View struct {
 /* this function will broadcast a GET request from one replica to all other
    replica's to ensure that they are currently up. */
 func RequestGet(v *View, personalSocketAddr string, endpoint string) ([]string, map[int]string) {
-	var g get
+	var (
+		g get
+	)
 	noResponseIndices := make(map[int]string)
+
+	Mu.Mutex.Lock()
 	for index, addr := range v.PersonalView {
 		if addr == personalSocketAddr || index >= len(v.PersonalView) { // skip over the personal replica since we don't send to ourselves
 			continue
@@ -53,6 +57,7 @@ func RequestGet(v *View, personalSocketAddr string, endpoint string) ([]string, 
 		// fmt.Println("Check v.View, V.Message in RequestGet:", v.View, v.Message)
 		fmt.Println("Checking allSocketAddrs at end of rqstGet:", v)
 	}
+	Mu.Mutex.Unlock()
 	fmt.Println("Check the v.View is about to be returned:", g.View)
 	fmt.Println("Check allSocketAddrs before returning v.View:", v)
 	return g.View, noResponseIndices
