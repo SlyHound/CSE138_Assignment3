@@ -61,7 +61,7 @@ func RequestDelete(v *View, personalSocketAddr string, indiciesToRemove map[int]
 	for index := range indiciesToRemove {
 		allKeys = append(allKeys, index)
 	}
-	fmt.Println("Check allKeys:", allKeys)
+	// fmt.Println("Check allKeys:", allKeys)
 
 	sort.Sort(sort.Reverse(sort.IntSlice(allKeys)))
 
@@ -78,7 +78,7 @@ func RequestDelete(v *View, personalSocketAddr string, indiciesToRemove map[int]
 	Mu.Mutex.Unlock()
 
 	// v = DeleteDuplicates(v)
-	fmt.Println("Check allSocketAddrs in rqstDelete:", v)
+	// fmt.Println("Check allSocketAddrs in rqstDelete:", v)
 }
 
 func ResponseDelete(r *gin.Engine, view *View) {

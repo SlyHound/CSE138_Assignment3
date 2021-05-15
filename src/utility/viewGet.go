@@ -32,7 +32,7 @@ func RequestGet(v *View, personalSocketAddr string, endpoint string) ([]string, 
 		if addr == personalSocketAddr || index >= len(v.PersonalView) { // skip over the personal replica since we don't send to ourselves
 			continue
 		}
-		fmt.Println("allSocketAddrs[index], index:", v.PersonalView[index], index)
+		// fmt.Println("allSocketAddrs[index], index:", v.PersonalView[index], index)
 		request, err := http.NewRequest("GET", "http://"+v.PersonalView[index]+endpoint, nil)
 
 		if err != nil {
@@ -55,7 +55,7 @@ func RequestGet(v *View, personalSocketAddr string, endpoint string) ([]string, 
 		fmt.Println("Check strBody in RequestGet:", strBody)
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&g)
 		// fmt.Println("Check v.View, V.Message in RequestGet:", v.View, v.Message)
-		fmt.Println("Checking allSocketAddrs at end of rqstGet:", v)
+		// fmt.Println("Checking allSocketAddrs at end of rqstGet:", v)
 	}
 	Mu.Mutex.Unlock()
 	fmt.Println("Check the v.View is about to be returned:", g.View)
