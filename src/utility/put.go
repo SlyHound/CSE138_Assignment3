@@ -85,7 +85,9 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 					c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
 				} else {
 					// not ready to be delivered
-					// place request in fifo buffer to serve request later
+					// place request in fifo buffer to serve request later?
+					// new approach: send error
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Delivering message would violate causal consistency", "message": "Error in PUT"})
 				}
 			} else { // otherwise we insert a new key-value pair //
 				color.Cyan("VECTOR CLOCK VALUE AT INDEX [%d]: %v\n", localAddr, currVC)
@@ -98,6 +100,8 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 				} else {
 					// not ready to be delivered
 					// place request in fifo buffer to serve request later
+					// new approach: send error
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Delivering message would violate causal consistency", "message": "Error in PUT"})
 				}
 			}
 		}
