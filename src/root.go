@@ -72,13 +72,47 @@ func variousResponses(router *gin.Engine, store map[string]string, view *utility
 	utility.KeyValueResponse(router, store)
 }
 
-func main() {
-	kvStore := make(map[string]string) // key value store for PUT, GET, and DELETE requests for replicas
+func remove(s []string, i int) []string {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+}
 
+func setupRouter(kvStore map[string]utility.StoreVal, socketAddr string, view []string) *gin.Engine {
 	router := gin.Default()
+	var socketIdx int
+	fmt.Printf("%v\n", view)
+	for i := 0; i < len(view); i++ {
+		println(view[i])
+		if view[i] == socketAddr {
+			println("VIEW[i]: " + view[i])
+			println("SOCKETADDR: " + socketAddr)
+			socketIdx = i
+			//set VCIndex to i
+			//funky stuff here, may be unneeded, don't remove for now
+			if i == 0 {
+				view = view[1:]
+			} else {
+				view = remove(view, i)
+			}
+		}
+	}
+	fmt.Printf("%v\n", view)
 	gin.SetMode(gin.ReleaseMode)
+	// keep global variable of our SOCKET ADDRESS
 	gin.DefaultWriter = ioutil.Discard
-	personalSocketAddr := os.Getenv("SOCKET_ADDRESS")
+	// main functionality from assignment 2, basically need to modify the PUTS and DELETES to echo to other
+	utility.PutRequest(router, kvStore, socketIdx, view)
+	utility.GetRequest(router, kvStore, socketIdx, view)
+	utility.DeleteRequest(router, kvStore, socketIdx, view)
+	utility.ReplicatePut(router, kvStore, socketIdx, view)
+	utility.ReplicateDelete(router, kvStore, socketIdx, view)
+	return router
+}
+
+func main() {
+	var kvStore = make(map[string]utility.StoreVal) // key-value store for PUT, GET, & DELETE requests (exported variable)
+
+	socketAddr := os.Getenv("SOCKET_ADDRESS")
 	view := strings.Split(os.Getenv("VIEW"), ",")
 
 	v := &utility.View{}
@@ -86,6 +120,8 @@ func main() {
 	v.NewReplica = ""
 
 	go healthCheck(v, personalSocketAddr, kvStore)
+
+	router := setupRouter(kvStore, socketAddr, view)
 	variousResponses(router, kvStore, v)
 
 	err := router.Run(port)
