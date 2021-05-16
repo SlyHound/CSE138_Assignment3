@@ -24,8 +24,8 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 	for range interval {
 		/* If a request returns with a view having # of replicas > current view
 		   then broadcast a PUT request (this means a replica has been added to the system) */
-		dictValues, noResponseIndices := utility.RequestGet(view, personalSocketAddr, "/key-value-store-view")
-		fmt.Println("Check response received:", dictValues, noResponseIndices)
+		returnedView, noResponseIndices := utility.RequestGet(view, personalSocketAddr, "/key-value-store-view")
+		fmt.Println("Check response received:", returnedView, noResponseIndices)
 
 		/* call upon RequestDelete to delete the replica from its own view and
 		   broadcast to other replica's to delete that same replica from their view */
@@ -33,25 +33,28 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 
 		fmt.Println("Check view in healthCheck before for:", view)
 		inReplica := false
-		newReplica := ""
 
-		if len(dictValues) > 0 {
+		utility.Mu.Mutex.Lock()
+		if len(returnedView) > 0 {
 			for _, viewSocketAddr := range view.PersonalView {
 				inReplica = false
-				newReplica = viewSocketAddr
-				for _, recvSocketAddr := range dictValues {
+				for _, recvSocketAddr := range returnedView {
 					if viewSocketAddr == recvSocketAddr {
 						inReplica = true
 						break
 					}
+					view.NewReplica = viewSocketAddr
 				}
 			}
 		}
+		utility.Mu.Mutex.Unlock()
 
-		if !inReplica && newReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
-			utility.RequestPut(view, personalSocketAddr, newReplica)
+		if !inReplica && view.NewReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
+			fmt.Println("Before rqstPut call")
+			utility.RequestPut(view, personalSocketAddr)
+			fmt.Println("Check view in healthCheck after PUT:", view)
 			if len(kvStore) == 0 { // if the current key-value store is empty, then we need to retrieve k-v pairs from the other replica's
-				dictValues, _ = utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
+				dictValues, _ := utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
 				fmt.Println("Check GET response on values:", dictValues)
 				// updates the current replica's key-value store with that of the received key-value store
 				for key, value := range dictValues {
@@ -80,6 +83,7 @@ func main() {
 
 	v := &utility.View{}
 	v.PersonalView = append(v.PersonalView, view...)
+	v.NewReplica = ""
 
 	go healthCheck(v, personalSocketAddr, kvStore)
 	variousResponses(router, kvStore, v)

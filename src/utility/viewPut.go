@@ -10,42 +10,45 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Dict struct {
-	Address string `json:"socket-address"`
-}
+// type dict struct {
+// 	Address string `json:"socket-address"`
+// }
 
-func RequestPut(v *View, personalSocketAddr string, newSocketAddr string) {
+func RequestPut(v *View, personalSocketAddr string) {
 
-	// now broadcast a PUT request to all other replica's to add it to their view's //
-	data := strings.NewReader(`{"socket-address":"` + newSocketAddr + `"}`)
 	Mu.Mutex.Lock()
+	// now broadcast a PUT request to all other replica's to add it to their view's //
+	copiedReplica := v.NewReplica
+	data := strings.NewReader(`{"socket-address":"` + copiedReplica + `"}`)
 	for index, addr := range v.PersonalView {
-		if addr == personalSocketAddr || index >= len(v.PersonalView) { // skip over the personal replica since we don't send to ourselves
+		if addr == personalSocketAddr { // skip over the personal replica since we don't send to ourselves
 			continue
 		}
-		request, err := http.NewRequest("PUT", "http://"+v.PersonalView[index]+"/key-value-store-view", data)
+		copiedViewElem := v.PersonalView[index]
+		request, err := http.NewRequest("PUT", "http://"+copiedViewElem+"/key-value-store-view", data)
 
 		if err != nil {
 			fmt.Println("There was an error creating a PUT request.")
 			break
 		}
 
+		fmt.Println("Sending to ", v.PersonalView[index], "with data about v.NewReplica:", v.NewReplica)
+		Mu.Mutex.Unlock()
 		request.Header.Set("Content-Type", "application/json")
-
 		httpForwarder := &http.Client{}
 		response, err := httpForwarder.Do(request)
-
+		Mu.Mutex.Lock()
 		if err != nil { // if a response doesn't come back, then that replica might be down
 			fmt.Println("There was an error sending a PUT request to " + v.PersonalView[index])
 			continue
 		}
 		defer response.Body.Close()
 	}
-	Mu.Mutex.Unlock()
 
+	// can remove lines 46 - 57 I think, since only the wokem replica sends put requests, so no point in adding to myself //
 	addedAlready := false
 	for index := range v.PersonalView {
-		if v.PersonalView[index] == newSocketAddr {
+		if v.PersonalView[index] == v.NewReplica {
 			addedAlready = true
 			break
 		}
@@ -53,15 +56,15 @@ func RequestPut(v *View, personalSocketAddr string, newSocketAddr string) {
 
 	// add the new replica to the current view if it hasn't already been added //
 	if !addedAlready {
-		Mu.Mutex.Lock()
-		v.PersonalView = append(v.PersonalView, newSocketAddr)
-		Mu.Mutex.Unlock()
+		v.PersonalView = append(v.PersonalView, v.NewReplica)
 	}
+
+	Mu.Mutex.Unlock()
 }
 
 func ResponsePut(r *gin.Engine, view *View) {
 	var (
-		d Dict
+		d SockAddr
 	)
 
 	r.PUT("/key-value-store-view", func(c *gin.Context) {
@@ -73,22 +76,29 @@ func ResponsePut(r *gin.Engine, view *View) {
 		}
 
 		strBody := string(body[:])
+		fmt.Println("Check strBody in RespPut:", strBody)
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
 		Mu.Mutex.Lock()
-		view.PersonalView = append(view.PersonalView, d.Address) // adds the new replica to the view //
 
-		presentInView := false
-
-		for _, viewSocketAddr := range view.PersonalView {
-			if d.Address == viewSocketAddr {
-				presentInView = true
+		addedAlready := false
+		for index := range view.PersonalView {
+			if view.PersonalView[index] == d.Address {
+				addedAlready = true
 				break
 			}
 		}
-		Mu.Mutex.Unlock()
 
+		fmt.Println("Check d.Address & view.PersonalView in ResponsePut:", d.Address, view.PersonalView)
+
+		if !addedAlready {
+			view.PersonalView = append(view.PersonalView, d.Address) // adds the new replica to the view //
+		}
+		fmt.Println("Check view.PersonalView after appending d.Address:", view.PersonalView)
+
+		Mu.Mutex.Unlock()
 		c.Request.Body.Close()
-		if presentInView {
+
+		if addedAlready {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Socket address already exists in the view", "message": "Error in PUT"})
 		} else {
 			c.JSON(http.StatusCreated, gin.H{"message": "Replica added successfully to the view"})

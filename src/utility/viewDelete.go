@@ -33,18 +33,20 @@ func RequestDelete(v *View, personalSocketAddr string, indiciesToRemove map[int]
 			continue
 		} else if indiciesToRemove[index] == addr { // if the element exists in the map, then delete it //
 
-			data := strings.NewReader(`{"socket-address":"` + v.PersonalView[index] + `"}`)
-			request, err := http.NewRequest("DELETE", "http://"+v.PersonalView[index]+"/key-value-store-view", data)
+			copiedViewElem := v.PersonalView[index]
+			data := strings.NewReader(`{"socket-address":"` + copiedViewElem + `"}`)
+			request, err := http.NewRequest("DELETE", "http://"+copiedViewElem+"/key-value-store-view", data)
 
 			if err != nil {
 				fmt.Println("There was an error creating a DELETE request.")
 				break
 			}
 
+			Mu.Mutex.Unlock()
 			request.Header.Set("Content-Type", "application/json")
-
 			httpForwarder := &http.Client{}
 			response, err := httpForwarder.Do(request)
+			Mu.Mutex.Lock()
 
 			if err != nil { // if a response doesn't come back, then that replica might be down
 				fmt.Println("There was an error sending a DELETE request to " + v.PersonalView[index])
@@ -92,9 +94,9 @@ func ResponseDelete(r *gin.Engine, view *View) {
 		}
 
 		strBody := string(body[:])
-		fmt.Println("Check strBody in respDelete:", strBody)
+		// fmt.Println("Check strBody in respDelete:", strBody)
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
-		fmt.Println("Check d.SocketAddr in respDelete:", d.Address)
+		// fmt.Println("Check d.SocketAddr in respDelete:", d.Address)
 		defer c.Request.Body.Close()
 
 		presentInView := false
@@ -113,7 +115,7 @@ func ResponseDelete(r *gin.Engine, view *View) {
 			Mu.Mutex.Lock()
 			view.PersonalView = append(view.PersonalView[:oIndex], view.PersonalView[oIndex+1:]...) // deletes the replica from the current view that received the DELETE rqst. //
 			Mu.Mutex.Unlock()
-			fmt.Println("Check view in respDelete:", view)
+			// fmt.Println("Check view in respDelete:", view)
 			c.JSON(http.StatusOK, gin.H{"message": "Replica deleted successfully from the view"})
 		} else {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Socket address does not exist in the view", "message": "Error in DELETE"})
