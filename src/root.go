@@ -17,7 +17,7 @@ const (
 )
 
 // checks to ensure that replica's are up by broadcasting GET requests //
-func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[string]string) {
+func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[string]utility.StoreVal) {
 
 	// runs infinitely on a 1 second clock interval //
 	interval := time.Tick(time.Second * 1)
@@ -57,15 +57,16 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 				dictValues, _ := utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
 				fmt.Println("Check GET response on values:", dictValues)
 				// updates the current replica's key-value store with that of the received key-value store
+				temp := make([]int, 1)
 				for key, value := range dictValues {
-					kvStore[fmt.Sprint(key)] = value
+					kvStore[fmt.Sprint(key)] = utility.StoreVal{Value: value, CausalMetadata: temp}
 				}
 			}
 		}
 	}
 }
 
-func variousResponses(router *gin.Engine, store map[string]string, view *utility.View) {
+func variousResponses(router *gin.Engine, store map[string]utility.StoreVal, view *utility.View) {
 	utility.ResponseGet(router, view)
 	utility.ResponseDelete(router, view)
 	utility.ResponsePut(router, view)
@@ -119,7 +120,7 @@ func main() {
 	v.PersonalView = append(v.PersonalView, view...)
 	v.NewReplica = ""
 
-	go healthCheck(v, personalSocketAddr, kvStore)
+	go healthCheck(v, socketAddr, kvStore)
 
 	router := setupRouter(kvStore, socketAddr, view)
 	variousResponses(router, kvStore, v)

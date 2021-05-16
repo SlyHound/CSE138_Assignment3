@@ -77,7 +77,7 @@ func ResponseGet(r *gin.Engine, view *View) {
 }
 
 // custom function designed to get all key-value pairs of the current replica to store in the new replica's store //
-func KeyValueResponse(r *gin.Engine, store map[string]string) {
+func KeyValueResponse(r *gin.Engine, store map[string]StoreVal) {
 	r.GET("/key-value-store-values", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "All pairs retrieved successfully", "view": store})
 	})
