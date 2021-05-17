@@ -1,35 +1,40 @@
 package utility
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-// type dict struct {
-// 	Address string `json:"socket-address"`
-// }
+type body struct {
+	Address string `json:"socket-address"`
+}
 
 func RequestPut(v *View, personalSocketAddr string) {
 
 	Mu.Mutex.Lock()
 	// now broadcast a PUT request to all other replica's to add it to their view's //
-	copiedReplica := v.NewReplica
-	data := strings.NewReader(`{"socket-address":"` + copiedReplica + `"}`)
+	data, err := json.Marshal(body{Address: v.NewReplica})
+
+	if err != nil {
+		log.Fatal("There was an error marshalling data.")
+	}
+
 	for index, addr := range v.PersonalView {
 		if addr == personalSocketAddr { // skip over the personal replica since we don't send to ourselves
 			continue
 		}
 		copiedViewElem := v.PersonalView[index]
-		request, err := http.NewRequest("PUT", "http://"+copiedViewElem+"/key-value-store-view", data)
+		request, err := http.NewRequest("PUT", "http://"+copiedViewElem+"/key-value-store-view", bytes.NewReader(data))
 
 		if err != nil {
-			fmt.Println("There was an error creating a PUT request.")
-			break
+			log.Fatal("There was an error creating a PUT request.")
 		}
 
 		fmt.Println("Sending to ", v.PersonalView[index], "with data about v.NewReplica:", v.NewReplica)
@@ -68,6 +73,7 @@ func ResponsePut(r *gin.Engine, view *View) {
 	)
 
 	r.PUT("/key-value-store-view", func(c *gin.Context) {
+		fmt.Println("Check c.Request:", c.Request)
 		body, err := ioutil.ReadAll(c.Request.Body)
 
 		if err != nil {

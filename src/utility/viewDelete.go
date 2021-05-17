@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -38,8 +39,7 @@ func RequestDelete(v *View, personalSocketAddr string, indiciesToRemove map[int]
 			request, err := http.NewRequest("DELETE", "http://"+copiedViewElem+"/key-value-store-view", data)
 
 			if err != nil {
-				fmt.Println("There was an error creating a DELETE request.")
-				break
+				log.Fatal("There was an error creating a DELETE request with error:", err.Error())
 			}
 
 			Mu.Mutex.Unlock()
@@ -90,7 +90,7 @@ func ResponseDelete(r *gin.Engine, view *View) {
 
 		if err != nil {
 			fmt.Println("There was an error attempting to read the request body.")
-			return
+			c.JSON(http.StatusInternalServerError, gin.H{})
 		}
 
 		strBody := string(body[:])

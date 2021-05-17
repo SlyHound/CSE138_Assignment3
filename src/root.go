@@ -57,7 +57,7 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 				dictValues, _ := utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
 				fmt.Println("Check GET response on values:", dictValues)
 				// updates the current replica's key-value store with that of the received key-value store
-				temp := make([]int, 1)
+				temp := make([]int, 0)
 				for key, value := range dictValues {
 					kvStore[fmt.Sprint(key)] = utility.StoreVal{Value: value, CausalMetadata: temp}
 				}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 
@@ -39,8 +40,7 @@ func RequestGet(v *View, personalSocketAddr string, endpoint string) ([]string, 
 		request, err := http.NewRequest("GET", "http://"+copiedViewElem+endpoint, nil)
 
 		if err != nil {
-			fmt.Println("There was an error creating a GET request with the following error:", err.Error())
-			break
+			log.Fatal("There was an error creating a GET request with the following error:", err.Error())
 		}
 
 		Mu.Mutex.Unlock()
