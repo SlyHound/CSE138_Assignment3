@@ -88,7 +88,9 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 					c.JSON(http.StatusOK, gin.H{"message": "Updated successfully", "replaced": true})
 				} else {
 					// not ready to be delivered
-					// place request in fifo buffer to serve request later
+					// place request in fifo buffer to serve request later?
+					// new approach: send error
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Delivering message would violate causal consistency", "message": "Error in PUT"})
 				}
 			} else { // otherwise we insert a new key-value pair //
 				color.Cyan("VECTOR CLOCK VALUE AT INDEX [%d]: %v\n", localAddr, currVC)
@@ -102,10 +104,14 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 				} else {
 					// not ready to be delivered
 					// place request in fifo buffer to serve request later
+					// new approach: send error
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Delivering message would violate causal consistency", "message": "Error in PUT"})
 				}
 			}
 		}
 		//send replicas PUT as well
+		d.CausalMetadata[localAddr]++   // increment sender VC for send event
+		d.CausalMetadata[3] = localAddr //Index of sender address
 		for i := 0; i < len(view); i++ {
 			//TODO
 			//refactor to skip vs remove in VC
@@ -113,8 +119,6 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 			println("Replicating message to: " + "http://" + view[i] + "/key-value-store-r/" + key)
 			c.Request.URL.Host = view[i]
 			c.Request.URL.Scheme = "http"
-			d.CausalMetadata[localAddr]++   // increment sender VC for send event
-			d.CausalMetadata[3] = localAddr //Index of sender address
 			data := &StoreVal{Value: d.Value, CausalMetadata: d.CausalMetadata}
 			jsonData, _ := json.Marshal(data)
 			fwdRequest, err := http.NewRequest("PUT", "http://"+view[i]+"/key-value-store-r/"+key, bytes.NewBuffer(jsonData))
