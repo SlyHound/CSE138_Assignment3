@@ -25,13 +25,13 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 		/* If a request returns with a view having # of replicas > current view
 		   then broadcast a PUT request (this means a replica has been added to the system) */
 		returnedView, noResponseIndices := utility.RequestGet(view, personalSocketAddr, "/key-value-store-view")
-		fmt.Println("Check response received:", returnedView, noResponseIndices)
+		// fmt.Println("Check response received:", returnedView, noResponseIndices)
 
 		/* call upon RequestDelete to delete the replica from its own view and
 		   broadcast to other replica's to delete that same replica from their view */
 		utility.RequestDelete(view, personalSocketAddr, noResponseIndices)
 
-		fmt.Println("Check view in healthCheck before for:", view)
+		// fmt.Println("Check view in healthCheck before for:", view)
 		inReplica := false
 
 		utility.Mu.Mutex.Lock()
@@ -50,12 +50,12 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 		utility.Mu.Mutex.Unlock()
 
 		if !inReplica && view.NewReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
-			fmt.Println("Before rqstPut call")
+			// fmt.Println("Before rqstPut call")
 			utility.RequestPut(view, personalSocketAddr)
-			fmt.Println("Check view in healthCheck after PUT:", view)
+			// fmt.Println("Check view in healthCheck after PUT:", view)
 			if len(kvStore) == 0 { // if the current key-value store is empty, then we need to retrieve k-v pairs from the other replica's
 				dictValues, _ := utility.RequestGet(view, personalSocketAddr, "/key-value-store-values")
-				fmt.Println("Check GET response on values:", dictValues)
+				// fmt.Println("Check GET response on values:", dictValues)
 				// updates the current replica's key-value store with that of the received key-value store
 				temp := make([]int, 0)
 				for key, value := range dictValues {
@@ -80,13 +80,16 @@ func remove(s []string, i int) []string {
 
 func setupRouter(kvStore map[string]utility.StoreVal, socketAddr string, view []string) *gin.Engine {
 	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	// keep global variable of our SOCKET ADDRESS
+	gin.DefaultWriter = ioutil.Discard
 	var socketIdx int
 	fmt.Printf("%v\n", view)
 	for i := 0; i < len(view); i++ {
 		println(view[i])
 		if view[i] == socketAddr {
-			println("VIEW[i]: " + view[i])
-			println("SOCKETADDR: " + socketAddr)
+			// println("VIEW[i]: " + view[i])
+			// println("SOCKETADDR: " + socketAddr)
 			socketIdx = i
 			//set VCIndex to i
 			//funky stuff here, may be unneeded, don't remove for now
@@ -98,9 +101,7 @@ func setupRouter(kvStore map[string]utility.StoreVal, socketAddr string, view []
 		}
 	}
 	fmt.Printf("%v\n", view)
-	gin.SetMode(gin.ReleaseMode)
-	// keep global variable of our SOCKET ADDRESS
-	gin.DefaultWriter = ioutil.Discard
+
 	// main functionality from assignment 2, basically need to modify the PUTS and DELETES to echo to other
 	utility.PutRequest(router, kvStore, socketIdx, view)
 	utility.GetRequest(router, kvStore, socketIdx, view)
@@ -120,11 +121,13 @@ func main() {
 	v.PersonalView = append(v.PersonalView, view...)
 	v.NewReplica = ""
 
-	go healthCheck(v, socketAddr, kvStore)
+	// go healthCheck(v, socketAddr, kvStore) // see if curl requests work for now
 
 	router := setupRouter(kvStore, socketAddr, view)
 	variousResponses(router, kvStore, v)
 
+	addr := socketAddr
+	fmt.Println("Check addr:", addr)
 	err := router.Run(port)
 
 	if err != nil {

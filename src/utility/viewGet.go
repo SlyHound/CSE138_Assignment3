@@ -30,12 +30,12 @@ func RequestGet(v *View, personalSocketAddr string, endpoint string) ([]string, 
 	noResponseIndices := make(map[int]string)
 
 	Mu.Mutex.Lock()
-	fmt.Println("Check v.PersonalView before for in RqstGet:", v.PersonalView)
+	// fmt.Println("Check v.PersonalView before for in RqstGet:", v.PersonalView)
 	for index, addr := range v.PersonalView {
 		if addr == personalSocketAddr { // skip over the personal replica since we don't send to ourselves
 			continue
 		}
-		fmt.Println("allSocketAddrs[index], index:", v.PersonalView[index], index)
+		// fmt.Println("allSocketAddrs[index], index:", v.PersonalView[index], index)
 		copiedViewElem := v.PersonalView[index]
 		request, err := http.NewRequest("GET", "http://"+copiedViewElem+endpoint, nil)
 
@@ -71,6 +71,7 @@ func RequestGet(v *View, personalSocketAddr string, endpoint string) ([]string, 
 func ResponseGet(r *gin.Engine, view *View) {
 	r.GET("/key-value-store-view", func(c *gin.Context) {
 		// view = DeleteDuplicates()
+		fmt.Println("GET rqst. received")
 		copiedViewElem := view.PersonalView
 		c.JSON(http.StatusOK, gin.H{"message": "View retrieved successfully", "view": copiedViewElem})
 	})

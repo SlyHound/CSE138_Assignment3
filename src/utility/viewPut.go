@@ -37,7 +37,7 @@ func RequestPut(v *View, personalSocketAddr string) {
 			log.Fatal("There was an error creating a PUT request.")
 		}
 
-		fmt.Println("Sending to ", v.PersonalView[index], "with data about v.NewReplica:", v.NewReplica)
+		// fmt.Println("Sending to ", v.PersonalView[index], "with data about v.NewReplica:", v.NewReplica)
 		Mu.Mutex.Unlock()
 		request.Header.Set("Content-Type", "application/json")
 		httpForwarder := &http.Client{}
@@ -73,7 +73,7 @@ func ResponsePut(r *gin.Engine, view *View) {
 	)
 
 	r.PUT("/key-value-store-view", func(c *gin.Context) {
-		fmt.Println("Check c.Request:", c.Request)
+		// fmt.Println("Check c.Request:", c.Request)
 		body, err := ioutil.ReadAll(c.Request.Body)
 
 		if err != nil {
@@ -82,7 +82,7 @@ func ResponsePut(r *gin.Engine, view *View) {
 		}
 
 		strBody := string(body[:])
-		fmt.Println("Check strBody in RespPut:", strBody)
+		// fmt.Println("Check strBody in RespPut:", strBody)
 		json.NewDecoder(strings.NewReader(strBody)).Decode(&d)
 		Mu.Mutex.Lock()
 
@@ -94,12 +94,12 @@ func ResponsePut(r *gin.Engine, view *View) {
 			}
 		}
 
-		fmt.Println("Check d.Address & view.PersonalView in ResponsePut:", d.Address, view.PersonalView)
+		// fmt.Println("Check d.Address & view.PersonalView in ResponsePut:", d.Address, view.PersonalView)
 
 		if !addedAlready {
 			view.PersonalView = append(view.PersonalView, d.Address) // adds the new replica to the view //
 		}
-		fmt.Println("Check view.PersonalView after appending d.Address:", view.PersonalView)
+		// fmt.Println("Check view.PersonalView after appending d.Address:", view.PersonalView)
 
 		Mu.Mutex.Unlock()
 		c.Request.Body.Close()
