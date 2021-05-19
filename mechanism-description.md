@@ -37,3 +37,9 @@ When a replica recieves a message, it uses the `canDeliver()` conditions to dete
   - If it was unsuccessful, this means it is still waiting on previous messages that it must deliver before this one will be causally consistent
   - The sender will know that the message could not be delivered, and it will send again
   - This process will continue until the reciever's VC has been updated and it can deliver this message
+
+# Detecting whether a replica is currently up or not
+On a 1 second interval timer, on a separate thread, we perform a health check. The purpose of the health check is to
+broadcast GET requests to all other replica's. If a replica or replica's are down, we add the socket address(es) to an
+array local to each replica. After broadcasting the GET requests, using the information gathered in the array, we can
+broadcast DELETE requests with each socket address in the array in turn. In the case in which all replica's are down, we delete the replica(s) from our personal view. Otherwise if at least two replica's are currently up, then before sending a response back, the receiver replica deletes the socket address received in the DELETE request. The operations involved with the health check are performed indefinitely to ensure that all replica's know as soon as possible when a replica goes down or when it comes back up.

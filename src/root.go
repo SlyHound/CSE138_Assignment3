@@ -31,7 +31,7 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 		   broadcast to other replica's to delete that same replica from their view */
 		utility.RequestDelete(view, personalSocketAddr, noResponseIndices)
 
-		// fmt.Println("Check view in healthCheck before for:", view)
+		fmt.Println("Check view in healthCheck before for:", view)
 		inReplica := false
 
 		utility.Mu.Mutex.Lock()
@@ -121,13 +121,11 @@ func main() {
 	v.PersonalView = append(v.PersonalView, view...)
 	v.NewReplica = ""
 
-	// go healthCheck(v, socketAddr, kvStore) // see if curl requests work for now
+	go healthCheck(v, socketAddr, kvStore) // see if curl requests work for now
 
 	router := setupRouter(kvStore, socketAddr, view)
 	variousResponses(router, kvStore, v)
 
-	addr := socketAddr
-	fmt.Println("Check addr:", addr)
 	err := router.Run(port)
 
 	if err != nil {
