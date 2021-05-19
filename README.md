@@ -1,7 +1,7 @@
 # Acknowledgments
 
 `Oleksiy Omelchenko:`
-## He was helped by Patrick Redmond on four different occassions. 
+## He was helped by Patrick Redmond on four different ocassions. 
 - The first of which was understanding how to handle replica's knowing when a server goes up or goes down for view operations. The suggestion to handle replica's is to keep a sort of queue data structure that kept track of which replica's were currently up by sending messages to each other periodicially.
 - The second situation in which he received help by Patrick is to perform all GET requests and then all DELETE requests for view operations. Previously a GET request was followed by a DELETE request if a replica was found to be currently down. His suggestion was taken into consideration and applied to the view operations with resounding success.
 - The third time was during section where Patrick drew out some casual consistency Lamport diagrams and described the vector clocks on each step. The Lamport diagrams helped the team better understand casual consistency through the comments listed on the images. 
