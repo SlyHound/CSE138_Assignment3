@@ -22,4 +22,19 @@ Oleksiy had a question regarding how to get data from another replica once the c
 
 # Citations
 - The package [http](https://golang.org/pkg/net/http/) was used to ensure that messages could be forwarded using the `http.Do()` function. Also, recently Oleksiy learned that the package [Gin](https://github.com/gin-gonic/gin), when running the `router.Run()` command, it actually runs `http.ListenAndServe()` in its implementation! Oh also, in the http package library, a new request had to be built using `http.NewRequest()` to be able to send messages from one replica to another.
-- To ensure that the server could serve requests and send them (in the case of view requests), the [sync](https://golang.org/pkg/sync/) library was utilized to be to sping up multiple threads without issues. Patrick actually suggested using mutexes from this library. The `Lock()` and `Unlock()` functions were used from library. Those two functions helped to ensure that there aren't any concurrent writes and reads happening at the same time. The `RWMutex` could be used instead to allow concurrent reads and only a single writer. As described by Aria and Patrick, these types of locks can help to speed up the program, although they weren't used since the only locks Oleksiy is familiar with is the ones previously described. Piggybacking off of synchronization, Zach suggested using the flag [--race](https://golang.org/doc/articles/race_detector) to check for race conditions upon testing the code. 
+- To ensure that the server could serve requests and send them (in the case of view requests), the [sync](https://golang.org/pkg/sync/) library was utilized to be to sping up multiple threads without issues. Patrick actually suggested using mutexes from this library. The `Lock()` and `Unlock()` functions were used from library. Those two functions helped to ensure that there aren't any concurrent writes and reads happening at the same time. The `RWMutex` could be used instead to allow concurrent reads and only a single writer. As described by Aria and Patrick, these types of locks can help to speed up the program, although they weren't used since the only locks Oleksiy is familiar with is the ones previously described. Piggybacking off of synchronization, Zach suggested using the flag [--race](https://golang.org/doc/articles/race_detector) to check for race conditions upon testing the code.
+
+# Team Contributions
+
+Oleksiy Omelchenko: View Operations
+- Sending periodic health checks (pings) to every replica in order to keep track of which replicas are up or down
+- GET, DELETE, and PUT view operations
+
+
+Zach Zulanas: Broadcasts
+- Sending / forwarding PUT and DELETE requests recieved from client to ensure consistency between replicas
+- Multithreading implementation of send requests to replicas - keeps sending a PUT or DELETE until replica can deliver
+
+Jackie Garcia: Causal Consistency
+- Implemented Vector Clocks for every replica and send as causal-metadata
+- Wrote Causal Broadcast algorithm function canDeliver() that compares send and recieve VCs to determine if a message is deliverable
