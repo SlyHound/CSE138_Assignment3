@@ -20,6 +20,9 @@ type StoreVal struct {
 	CausalMetadata []int  `json:"causal-metadata"`
 }
 
+type Request struct {
+}
+
 func canDeliver(senderVC []int, replicaVC []int) bool {
 	// conditions for delivery:
 	//      senderVC[senderslot] = replicaVC[senderslot] + 1
@@ -134,8 +137,13 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 
 			// Shouldn't worry about Error checking? just send requests out and if things are down oh well?
 			if err != nil {
-				msg := "Error in " + fwdRequest.Method
-				c.JSON(http.StatusServiceUnavailable, gin.H{"error": view[i] + " is down", "message": msg})
+				//if our request would violate causal consistency, add to queue to be sent over and over again until no error
+				if fwdResponse.StatusCode == 400 {
+					reqDispatch[view[i]].append(fwdRequest)
+				} else if fwdResponse.StatusCode == 503 {
+					//TODO: implement this
+					//server is down, so we remove from view
+				}
 			}
 			if fwdResponse != nil {
 				body, _ := ioutil.ReadAll(fwdResponse.Body)

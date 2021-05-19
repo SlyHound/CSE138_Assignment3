@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"src/utility"
 	"strings"
@@ -14,9 +15,32 @@ const (
 	port = ":8085"
 )
 
+type status struct {
+}
+
 func remove(s []string, i int) []string {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
+}
+
+//hmmmm why don't we just keep a FIFO queue on the receiving client again
+//goroutine to dispatch and send requests out to our waiting
+func dispatch() {
+	//while true
+	//
+	//	check for any queues with elements in them in reqDispatch
+	//		if queue not empty
+	//		while queue is not empty:
+	//			try sending requests in the queue to said client
+	//			if response is good
+	//				LOCK/UNLOCK around this
+	//				remove from queue
+	//			elif response is bad
+	//				keep in queue
+	//				break
+	//
+	//
+
 }
 
 func setupRouter(kvStore map[string]utility.StoreVal) *gin.Engine {
@@ -57,7 +81,10 @@ func setupRouter(kvStore map[string]utility.StoreVal) *gin.Engine {
 func main() {
 
 	var kvStore = make(map[string]utility.StoreVal) // key-value store for PUT, GET, & DELETE requests (exported variable)
+	//pass in reqDispatch to our requests so we can update it
+	var reqDispatch = make(map[string]http.Request) // map of addresses and their queued/stored requests to replicate if things go down
 
+	//go dispatch(reqDispatch, mutex)
 	router := setupRouter(kvStore)
 	err := router.Run(port)
 	if err != nil {

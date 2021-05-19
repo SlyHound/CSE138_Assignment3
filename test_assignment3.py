@@ -260,114 +260,114 @@ class TestHW3(unittest.TestCase):
         self.assertEqual(response.status_code, 201)
 
     ########################## Key/Value Tests #######################################################
-    # def test_c_key_value_operations(self):
+    def test_c_key_value_operations(self):
 
         
 
-    #     print("\n###################### Putting mykey1/myvalue1 to the store ######################\n")
+        print("\n###################### Putting mykey1/myvalue1 to the store ######################\n")
 
-    #     # put a new key in the store
-    #     baseUrl  = hostBaseUrl + ':' + replica1HostPort + '/key-value-store/mykey1'
-    #     response = requests.put(baseUrl, json={"value": "myvalue1", "causal-metadata": ""})
-    #     responseInJson = response.json()
+        # put a new key in the store
+        baseUrl  = hostBaseUrl + ':' + replica1HostPort + '/key-value-store/mykey1'
+        response = requests.put(baseUrl, json={"value": "myvalue1", "causal-metadata": ""})
+        responseInJson = response.json()
 
-    #     put_causal_metadata = responseInJson['causal-metadata']
-    #     self.assertEqual(response.status_code, 201)
+        put_causal_metadata = responseInJson['causal-metadata']
+        self.assertEqual(response.status_code, 201)
 
-    #     print("\n###################### Getting mykey1 from replica1 ######################\n")
+        print("\n###################### Getting mykey1 from replica1 ######################\n")
 
-    #     # get the value of the new key from replica1 after putting a new key
-    #     baseUrl  = hostBaseUrl + ':' + replica1HostPort + '/key-value-store/mykey1'
-    #     response = requests.get(baseUrl)
-    #     responseInJson = response.json()
+        # get the value of the new key from replica1 after putting a new key
+        baseUrl  = hostBaseUrl + ':' + replica1HostPort + '/key-value-store/mykey1'
+        response = requests.get(baseUrl)
+        responseInJson = response.json()
 
-    #     first_get_value = responseInJson['value']
-    #     first_get_causal_metadata = responseInJson['causal-metadata']
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(first_get_value, 'myvalue1')
-    #     self.assertEqual(first_get_causal_metadata, put_causal_metadata)
+        first_get_value = responseInJson['value']
+        first_get_causal_metadata = responseInJson['causal-metadata']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(first_get_value, 'myvalue1')
+        self.assertEqual(first_get_causal_metadata, put_causal_metadata)
 
-    #     time.sleep(10)
+        time.sleep(10)
 
-    #     print("\n###################### Getting mykey1 from replica2 ######################\n")
+        print("\n###################### Getting mykey1 from replica2 ######################\n")
 
-    #     # get the value of the new key from replica2 after putting a new key
-    #     baseUrl  = hostBaseUrl + ':' + replica2HostPort + '/key-value-store/mykey1'
-    #     response = requests.get(baseUrl)
-    #     responseInJson = response.json()
+        # get the value of the new key from replica2 after putting a new key
+        baseUrl  = hostBaseUrl + ':' + replica2HostPort + '/key-value-store/mykey1'
+        response = requests.get(baseUrl)
+        responseInJson = response.json()
 
-    #     second_get_value = responseInJson['value']
-    #     second_get_causal_metadata = responseInJson['causal-metadata']
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(second_get_value, 'myvalue1')
-    #     self.assertEqual(second_get_causal_metadata, put_causal_metadata)
+        second_get_value = responseInJson['value']
+        second_get_causal_metadata = responseInJson['causal-metadata']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(second_get_value, 'myvalue1')
+        self.assertEqual(second_get_causal_metadata, put_causal_metadata)
 
-    #     print("\n###################### Getting mykey1 from replica3 ######################\n")
+        print("\n###################### Getting mykey1 from replica3 ######################\n")
 
-    #     # get the value of the new key from replica3 after putting a new key
-    #     baseUrl  = hostBaseUrl + ':' + replica3HostPort + '/key-value-store/mykey1'
-    #     response = requests.get(baseUrl)
-    #     responseInJson = response.json()
+        # get the value of the new key from replica3 after putting a new key
+        baseUrl  = hostBaseUrl + ':' + replica3HostPort + '/key-value-store/mykey1'
+        response = requests.get(baseUrl)
+        responseInJson = response.json()
 
-    #     third_get_value = responseInJson['value']
-    #     third_get_causal_metadata = responseInJson['causal-metadata']
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(third_get_value, 'myvalue1')
-    #     self.assertEqual(third_get_causal_metadata, put_causal_metadata)
+        third_get_value = responseInJson['value']
+        third_get_causal_metadata = responseInJson['causal-metadata']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(third_get_value, 'myvalue1')
+        self.assertEqual(third_get_causal_metadata, put_causal_metadata)
 
 
-    #     print("\n###################### Putting mykey1/myvalue2 to the store ######################\n")
+        print("\n###################### Putting mykey1/myvalue2 to the store ######################\n")
 
-    #     # put a new key in the store
-    #     baseUrl  = hostBaseUrl + ':' + replica1HostPort + '/key-value-store/mykey1'
-    #     response = requests.put(baseUrl, json={"value": "myvalue2", "causal-metadata": third_get_causal_metadata})
-    #     responseInJson = response.json()
-    #     put_causal_metadata = responseInJson['causal-metadata']
-    #     self.assertEqual(response.status_code, 200)
+        # put a new key in the store
+        baseUrl  = hostBaseUrl + ':' + replica1HostPort + '/key-value-store/mykey1'
+        response = requests.put(baseUrl, json={"value": "myvalue2", "causal-metadata": third_get_causal_metadata})
+        responseInJson = response.json()
+        put_causal_metadata = responseInJson['causal-metadata']
+        self.assertEqual(response.status_code, 200)
 
-    #     print("\n###################### Getting mykey1 from replica1 ######################\n")
+        print("\n###################### Getting mykey1 from replica1 ######################\n")
 
-    #     # get the value of the new key from replica1 after putting a new key
-    #     baseUrl  = hostBaseUrl + ':' + replica1HostPort + '/key-value-store/mykey1'
-    #     response = requests.get(baseUrl)
-    #     responseInJson = response.json()
+        # get the value of the new key from replica1 after putting a new key
+        baseUrl  = hostBaseUrl + ':' + replica1HostPort + '/key-value-store/mykey1'
+        response = requests.get(baseUrl)
+        responseInJson = response.json()
 
-    #     first_get_value = responseInJson['value']
-    #     first_get_causal_metadata = responseInJson['causal-metadata']
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(first_get_value, 'myvalue2')
-    #     self.assertEqual(first_get_causal_metadata, put_causal_metadata)
+        first_get_value = responseInJson['value']
+        first_get_causal_metadata = responseInJson['causal-metadata']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(first_get_value, 'myvalue2')
+        self.assertEqual(first_get_causal_metadata, put_causal_metadata)
 
-    #     time.sleep(10)
+        time.sleep(10)
 
-    #     print("\n###################### Getting mykey1 from replica2 ######################\n")
+        print("\n###################### Getting mykey1 from replica2 ######################\n")
 
-    #     # get the value of the new key from replica2 after putting a new key
-    #     baseUrl  = hostBaseUrl + ':' + replica2HostPort + '/key-value-store/mykey1'
-    #     response = requests.get(baseUrl)
-    #     responseInJson = response.json()
+        # get the value of the new key from replica2 after putting a new key
+        baseUrl  = hostBaseUrl + ':' + replica2HostPort + '/key-value-store/mykey1'
+        response = requests.get(baseUrl)
+        responseInJson = response.json()
 
-    #     second_get_value = responseInJson['value']
-    #     second_get_causal_metadata = responseInJson['causal-metadata']
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(second_get_value, 'myvalue2')
-    #     self.assertEqual(second_get_causal_metadata, put_causal_metadata)
+        second_get_value = responseInJson['value']
+        second_get_causal_metadata = responseInJson['causal-metadata']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(second_get_value, 'myvalue2')
+        self.assertEqual(second_get_causal_metadata, put_causal_metadata)
 
-    #     print("\n###################### Getting mykey1 from replica3 ######################\n")
+        print("\n###################### Getting mykey1 from replica3 ######################\n")
 
-    #     # get the value of the new key from replica2 after putting a new key
-    #     baseUrl  = hostBaseUrl + ':' + replica3HostPort + '/key-value-store/mykey1'
-    #     response = requests.get(baseUrl)
-    #     responseInJson = response.json()
+        # get the value of the new key from replica2 after putting a new key
+        baseUrl  = hostBaseUrl + ':' + replica3HostPort + '/key-value-store/mykey1'
+        response = requests.get(baseUrl)
+        responseInJson = response.json()
 
-    #     third_get_value = responseInJson['value']
-    #     third_get_causal_metadata = responseInJson['causal-metadata']
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(third_get_value, 'myvalue2')
-    #     self.assertEqual(third_get_causal_metadata, put_causal_metadata)
+        third_get_value = responseInJson['value']
+        third_get_causal_metadata = responseInJson['causal-metadata']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(third_get_value, 'myvalue2')
+        self.assertEqual(third_get_causal_metadata, put_causal_metadata)
 
-    # ########################## Run tests #######################################################
-    # def test_d_causal_consistency(self):
+    ########################## Run tests #######################################################
+    def test_d_causal_consistency(self):
 
         print("\n###################### Disconnecting replica2 from the network ######################\n")
         disconnectFromNetwork(subnetName, "replica2")
