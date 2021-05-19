@@ -30,6 +30,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 		println("BODY: " + strBody)
 		//hmmmm
 		json.Unmarshal(body, &d)
+		d.CausalMetadata = []int{0, 0, 0, 0}
 		fmt.Printf("%v\n", d.CausalMetadata)
 		defer c.Request.Body.Close()
 		if strBody == "{}" {

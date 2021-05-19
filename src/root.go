@@ -31,7 +31,7 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 		   broadcast to other replica's to delete that same replica from their view */
 		utility.RequestDelete(view, personalSocketAddr, noResponseIndices)
 
-		fmt.Println("Check view in healthCheck before for:", view)
+		fmt.Println("Check view & returnedView in healthCheck before for:", view, returnedView)
 		inReplica := false
 
 		utility.Mu.Mutex.Lock()
@@ -54,26 +54,20 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 			utility.RequestPut(view, personalSocketAddr)
 			// fmt.Println("Check view in healthCheck after PUT:", view)
 			if len(kvStore) == 0 { // if the current key-value store is empty, then we need to retrieve k-v pairs from the other replica's
-				// temp := make([]int, 0)
 				utility.Mu.Mutex.Lock()
 				for _, addr := range view.PersonalView {
 					if addr == personalSocketAddr {
 						continue
 					}
 					dictValues := utility.KvGet(addr)
+					fmt.Println("*********DICTVALUES ***********", dictValues)
 					// updates the current replica's key-value store with that of the received key-value store
-					if dictValues == nil {
-						continue
-					} else {
-						kvStore = dictValues
-						break
+					for key, storeVal := range dictValues {
+						_, exists := kvStore[key]
+						if !exists { // if the key doesn't exist in the store, then add it
+							kvStore[fmt.Sprint(key)] = utility.StoreVal{Value: storeVal.Value, CausalMetadata: storeVal.CausalMetadata}
+						}
 					}
-					// for key, storeVal := range dictValues {
-					// 	_, exists := kvStore[key]
-					// 	if !exists { // if the key doesn't exist in the store, then add it
-					// 		kvStore[fmt.Sprint(key)] = utility.StoreVal{Value: storeVal.Value, CausalMetadata: temp}
-					// 	}
-					// }
 				}
 				utility.Mu.Mutex.Unlock()
 				// fmt.Println("Check GET response on values:", dictValues)
@@ -83,51 +77,51 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 }
 
 // broadcasts GET requests to ensure that all replica's have consistent key-value stores //
-func dispatch(view *utility.View, store map[string]utility.StoreVal, personalSocketAddr string) {
+// func dispatch(view *utility.View, store map[string]utility.StoreVal, personalSocketAddr string) {
 
-	interval := time.Tick(time.Second * 1)
-	for range interval {
-		// obtains all the keyvalue pairs from all other replica's //
-		utility.Mu.Mutex.Lock()
-		for index, addr := range view.PersonalView {
-			if addr == personalSocketAddr {
-				continue
-			} else {
-				dictValues := utility.KvGet(addr)
-				if dictValues == nil {
-					fmt.Printf("Replica is down!")
-					//replica is down for some reason
-					//mark in view that replica is down/non-responsive
-				} else {
-					//ensure causal consistency
-					if store != dictValues {
-						//no causal consistency!
-						// x = 4, x = 3, x didn't exist
-						// repStatus = map[string]{bool, queue}
-						// if dictValues == nil
-						// R1 gets kvStore v 1.0
-						// R2 and R3 get v 1.0
-						// R2 goes down
-						// R1 and R3 get v 2.0
-						// R3 goes DOWN
-						// R1 gets V 3.0
-						// R2 comes up
-						// R2 gets request that violates consistency (should become v 4.0)
-						// R1 sees that, and sends KV store v3.0 to R2
-						// R2 gets v3.0
-						// R1 and R2 get V 4.0
-						// R3 comes up
-						// R3 gets V 4.0
-						// replica1 has x = foo (v 3.0), replica2 comes up (v 0.0), client sends request to replica2 (r2 sets version to 1.0),
-						// with x = bar, we return 201 instead of 200 because x = foo already exists
-					}
-				}
-			}
+// 	interval := time.Tick(time.Second * 1)
+// 	for range interval {
+// 		// obtains all the keyvalue pairs from all other replica's //
+// 		utility.Mu.Mutex.Lock()
+// 		for index, addr := range view.PersonalView {
+// 			if addr == personalSocketAddr {
+// 				continue
+// 			} else {
+// 				dictValues := utility.KvGet(addr)
+// 				if dictValues == nil {
+// 					fmt.Printf("Replica is down!")
+// 					//replica is down for some reason
+// 					//mark in view that replica is down/non-responsive
+// 				} else {
+// 					//ensure causal consistency
+// 					if store != dictValues {
+// 						//no causal consistency!
+// 						// x = 4, x = 3, x didn't exist
+// 						// repStatus = map[string]{bool, queue}
+// 						// if dictValues == nil
+// 						// R1 gets kvStore v 1.0
+// 						// R2 and R3 get v 1.0
+// 						// R2 goes down
+// 						// R1 and R3 get v 2.0
+// 						// R3 goes DOWN
+// 						// R1 gets V 3.0
+// 						// R2 comes up
+// 						// R2 gets request that violates consistency (should become v 4.0)
+// 						// R1 sees that, and sends KV store v3.0 to R2
+// 						// R2 gets v3.0
+// 						// R1 and R2 get V 4.0
+// 						// R3 comes up
+// 						// R3 gets V 4.0
+// 						// replica1 has x = foo (v 3.0), replica2 comes up (v 0.0), client sends request to replica2 (r2 sets version to 1.0),
+// 						// with x = bar, we return 201 instead of 200 because x = foo already exists
+// 					}
+// 				}
+// 			}
 
-		}
-		utility.Mu.Mutex.Unlock()
-	}
-}
+// 		}
+// 		utility.Mu.Mutex.Unlock()
+// 	}
+// }
 
 func variousResponses(router *gin.Engine, store map[string]utility.StoreVal, view *utility.View) {
 	utility.ResponseGet(router, view)
@@ -186,7 +180,7 @@ func main() {
 	v.NewReplica = ""
 
 	go healthCheck(v, socketAddr, kvStore)
-	go dispatch(v, kvStore, socketAddr)
+	// go dispatch(v, kvStore, socketAddr)
 
 	router := setupRouter(kvStore, socketAddr, view)
 	variousResponses(router, kvStore, v)

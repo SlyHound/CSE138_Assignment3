@@ -41,8 +41,7 @@ func RequestGet(v *View, personalSocketAddr string) ([]string, map[int]string) {
 			continue
 		}
 		// fmt.Println("allSocketAddrs[index], index:", v.PersonalView[index], index)
-		copiedViewElem := v.PersonalView[index]
-		request, err := http.NewRequest("GET", "http://"+copiedViewElem+"/key-value-store-view", nil)
+		request, err := http.NewRequest("GET", "http://"+v.PersonalView[index]+"/key-value-store-view", nil)
 
 		if err != nil {
 			log.Fatal("There was an error creating a GET request with the following error:", err.Error())
@@ -104,10 +103,8 @@ func KvGet(replica string) map[string]StoreVal {
 
 func ResponseGet(r *gin.Engine, view *View) {
 	r.GET("/key-value-store-view", func(c *gin.Context) {
-		// view = DeleteDuplicates()
 		fmt.Println("GET rqst. received")
-		copiedViewElem := view.PersonalView
-		c.JSON(http.StatusOK, gin.H{"message": "View retrieved successfully", "view": copiedViewElem})
+		c.JSON(http.StatusOK, gin.H{"message": "View retrieved successfully", "view": view.PersonalView})
 	})
 }
 
