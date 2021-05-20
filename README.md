@@ -48,6 +48,10 @@ Zach Zulanas: Broadcasts
 - Built out Causal consistency distribution algorithm with Jackie and Oleksiy
 
 Jackie Garcia: Causal Consistency
-- Implemented Vector Clocks for every replica and send as causal-metadata (described in mechanism-description)
+- Implemented Vector Clocks for every replica as causal-metadata (described in mechanism-description)
+- updateVC() function to take the pointwise maximum of message VC and current replica VC
 - Wrote Causal Broadcast algorithm function canDeliver() that compares send and recieve VCs to determine if a message is deliverable
+- Maintain and update vector clocks before sending causal broadcasts to other replicas
 - Wrote causal consistency implementation explanation in mechanism-description
+
+In addition to this, we peer programmed and debugged the implementation of our causal consistency VCs, and how they get sent across the replica specific endpoint.
