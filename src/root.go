@@ -43,13 +43,16 @@ func healthCheck(view *utility.View, personalSocketAddr string, kvStore map[stri
 						inReplica = true
 						break
 					}
-					view.NewReplica = viewSocketAddr
+					if !inReplica {
+						view.NewReplica = viewSocketAddr
+						break
+					}
 				}
 			}
 		}
 		utility.Mu.Mutex.Unlock()
 
-		if !inReplica && view.NewReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
+		if view.NewReplica != "" { // broadcast a PUT request with the new replica to add to all replica's views
 			// fmt.Println("Before rqstPut call")
 			utility.RequestPut(view, personalSocketAddr)
 			// fmt.Println("Check view in healthCheck after PUT:", view)
@@ -135,7 +138,7 @@ func remove(s []string, i int) []string {
 	return s[:len(s)-1]
 }
 
-func setupRouter(kvStore map[string]utility.StoreVal, socketAddr string, view []string) *gin.Engine {
+func setupRouter(kvStore map[string]utility.StoreVal, socketAddr string, view []string, currVC []int) *gin.Engine {
 	router := gin.Default()
 	gin.SetMode(gin.ReleaseMode)
 	// keep global variable of our SOCKET ADDRESS
@@ -160,10 +163,10 @@ func setupRouter(kvStore map[string]utility.StoreVal, socketAddr string, view []
 	fmt.Printf("%v\n", view)
 
 	// main functionality from assignment 2, basically need to modify the PUTS and DELETES to echo to other
-	utility.PutRequest(router, kvStore, socketIdx, view)
+	utility.PutRequest(router, kvStore, socketIdx, view, currVC)
 	utility.GetRequest(router, kvStore, socketIdx, view)
 	utility.DeleteRequest(router, kvStore, socketIdx, view)
-	utility.ReplicatePut(router, kvStore, socketIdx, view)
+	utility.ReplicatePut(router, kvStore, socketIdx, view, currVC)
 	utility.ReplicateDelete(router, kvStore, socketIdx, view)
 	return router
 }
@@ -175,6 +178,8 @@ func main() {
 	socketAddr := os.Getenv("SOCKET_ADDRESS")
 	view := strings.Split(os.Getenv("VIEW"), ",")
 
+	currVC := []int{0, 0, 0, 0}
+
 	v := &utility.View{}
 	v.PersonalView = append(v.PersonalView, view...)
 	v.NewReplica = ""
@@ -182,7 +187,7 @@ func main() {
 	go healthCheck(v, socketAddr, kvStore)
 	// go dispatch(v, kvStore, socketAddr)
 
-	router := setupRouter(kvStore, socketAddr, view)
+	router := setupRouter(kvStore, socketAddr, view, currVC)
 	variousResponses(router, kvStore, v)
 
 	err := router.Run(port)

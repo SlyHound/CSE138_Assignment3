@@ -24,7 +24,7 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view 
 		// if the key-value pair exists, then delete it //
 		if _, exists := dict[key]; exists {
 			m.CausalMetadata = dict[key].CausalMetadata //Index of sender address is put into causal clock here
-			c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "causal-metadata": m.CausalMetadata})
+			c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "causal-metadata": m.CausalMetadata[0:3]})
 			m.CausalMetadata[3] = localAddr
 			delete(dict, key)
 		} else {
