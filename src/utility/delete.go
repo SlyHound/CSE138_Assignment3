@@ -15,7 +15,7 @@ type Metadata struct {
 }
 
 //DeleteRequest Client endpoint for deletions
-func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
+func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string, currVC []int) {
 	var m Metadata
 	println(view)
 	r.DELETE("/key-value-store/:key", func(c *gin.Context) {
@@ -23,9 +23,16 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view 
 
 		// if the key-value pair exists, then delete it //
 		if _, exists := dict[key]; exists {
-			m.CausalMetadata = dict[key].CausalMetadata //Index of sender address is put into causal clock here
+			if len(m.CausalMetadata) > 0 {
+				updateKvStore(view, dict, currVC)
+			} else if len(m.CausalMetadata) == 0 {
+				m.CausalMetadata = []int{0, 0, 0}
+			}
+			// increment on receive so we send back correct causal clock
+			m.CausalMetadata[localAddr]++
+			m.CausalMetadata = append(m.CausalMetadata, localAddr) //Index of sender address
+			currVC = m.CausalMetadata
 			c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "causal-metadata": m.CausalMetadata[0:3]})
-			m.CausalMetadata[3] = localAddr
 			delete(dict, key)
 		} else {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Key does not exist", "message": "Error in DELETE"})
@@ -70,7 +77,7 @@ func DeleteRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view 
 }
 
 //ReplicateDelete endpoint to replicate delete messages
-func ReplicateDelete(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string) {
+func ReplicateDelete(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []string, currVC []int) {
 	var m Metadata
 	r.DELETE("/key-value-store-r/:key", func(c *gin.Context) {
 		key := c.Param("key")
@@ -81,9 +88,17 @@ func ReplicateDelete(r *gin.Engine, dict map[string]StoreVal, localAddr int, vie
 		fmt.Printf("CAUSAL CLOCK VALUE: %v\n", m.CausalMetadata)
 		// if the key-value pair exists, then delete it //
 		if _, exists := dict[key]; exists {
-			m.CausalMetadata = dict[key].CausalMetadata
-			c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "causal-metadata": m.CausalMetadata})
-			delete(dict, key)
+			if canDeliver(m.CausalMetadata, currVC) {
+				m.CausalMetadata = dict[key].CausalMetadata
+				c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "causal-metadata": m.CausalMetadata})
+				delete(dict, key)
+			} else {
+				updateKvStore(view, dict, currVC)
+				m.CausalMetadata = updateVC(m.CausalMetadata, currVC)
+				c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "causal-metadata": m.CausalMetadata})
+				delete(dict, key)
+			}
+
 		} else {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Key does not exist", "message": "Error in DELETE"})
 		}
