@@ -41,7 +41,7 @@ If it is safe, the replica updates its vector clock: max (sender, current) for a
     - When it recieves the message with VC entry 1, it can deliver (0 + 1 = 1) and update its own VC
     - It can then deliver 2, since 1 + 1 = 2
 
-In order to ensure consistency between replicas, we keep a status of each replica. If this status indicates that the current replica is not fully up to date (meaning it has messages it cannot yet deliver) it is blocked from serving client requests. Once it has resolved and delivered these messages, it becomes unblocked and can now serve requests from the client that it knows will be consistent with other replicas.
+If, however, it is not safe, then we know this replica is not up to date. We will set the replica status to indicate it is not up to date. While a replica is not up to date, it is blocked from serving any client requests. We call kvGet() to the other replicas, which will return an updated version of the key-value store. Once we ahev updated our kvStore, we set the status to up-to-date again. Once unblocked, this replica can now serve requests from the client that it knows will be consistent.
 
 # Detecting whether a replica is currently up or not
 On a 1 second interval timer, on a separate thread, we perform a health check. The purpose of the health check is to
