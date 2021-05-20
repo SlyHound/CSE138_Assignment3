@@ -36,5 +36,6 @@ Zach Zulanas: Broadcasts
 - Implemented replica-to-replica endpoint to allow replicas to send changes to one another
 
 Jackie Garcia: Causal Consistency
-- Implemented Vector Clocks for every replica and send as causal-metadata
+- Implemented Vector Clocks for every replica and send as causal-metadata (described in mechanism-description)
 - Wrote Causal Broadcast algorithm function canDeliver() that compares send and recieve VCs to determine if a message is deliverable
+- Wrote causal consistency implementation explanation in mechanism-description
