@@ -165,9 +165,9 @@ func setupRouter(kvStore map[string]utility.StoreVal, socketAddr string, view []
 	// main functionality from assignment 2, basically need to modify the PUTS and DELETES to echo to other
 	utility.PutRequest(router, kvStore, socketIdx, view, currVC)
 	utility.GetRequest(router, kvStore, socketIdx, view)
-	utility.DeleteRequest(router, kvStore, socketIdx, view)
+	utility.DeleteRequest(router, kvStore, socketIdx, view, currVC)
 	utility.ReplicatePut(router, kvStore, socketIdx, view, currVC)
-	utility.ReplicateDelete(router, kvStore, socketIdx, view)
+	utility.ReplicateDelete(router, kvStore, socketIdx, view, currVC)
 	return router
 }
 

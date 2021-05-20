@@ -20,10 +20,21 @@ The result of the error was because I was attempting to send curl requests on th
 ## Discussing with Vinay Venkat.
 Oleksiy had a question regarding how to get data from another replica once the current replica comes back up. Vinay suggested using an additional endpoint in which a GET request could be administered to retrieve the local key-value store following the prior PUT requests. The suggestion of using another endpoint was implemented and is present in which the GET request to retrieve the key-value store is broadcasted after the PUT requests. 
 
+`Zachary Zulanas:`
+
+## Matthew Boisvert
+* Helped with getting the idea of how to set up causal consistency and where to lock our variables
+* Gave ideas on how to avoid deadlock and maintain consistency
+
+## Arjun Loganathan
+* Helped Oleksiy and I understand how to implement causal consistency and helped debug our code when we kept running into errors. We implemented his ideas/algorithm for our causal delivery and causal consistency where we rebroadcast the entire casual history of our replicas to ones that start back up again/come online.
+
 # Citations
 - The package [http](https://golang.org/pkg/net/http/) was used to ensure that messages could be forwarded using the `http.Do()` function. Also, recently Oleksiy learned that the package [Gin](https://github.com/gin-gonic/gin) (which our group has been using since assignment 2 to listen and serve requests), when running the `router.Run()` command, it actually runs `http.ListenAndServe()` in its implementation! Oh also, in the http package library, a new request had to be built using `http.NewRequest()` to be able to send messages from one replica to another.
 - To ensure that the server could serve requests and send them (in the case of view requests), the [sync](https://golang.org/pkg/sync/) library was utilized to be to spring up multiple threads without issues. Patrick actually suggested using mutexes from this library. The `Lock()` and `Unlock()` functions were used from library. Those two functions helped to ensure that there aren't any concurrent writes and reads happening at the same time. The `RWMutex` could be used instead to allow concurrent reads and only a single writer. As described by Aria and Patrick, these types of locks can help to speed up the program, although they weren't used since the only locks Oleksiy is familiar with is the ones previously described. Piggybacking off of synchronization, Zach suggested using the flag [--race](https://golang.org/doc/articles/race_detector) to check for race conditions upon testing the code.
 - Lecture 5, Vector Clocks Algorithm (with a twist): The algorithm described here was the basis of our causal consistency implementation. We used the vector clock from this as the causal-metadata from replica to replica to keep PUT and DELETE requests consistent. Just like the algorithm, we count sends as events, but we do not count deliver as events.
+- Used a lot of the Go documentation in order to build out the services and HTTP routes for replica to replica communication - Zach
+- Reused a lot of Assignment 2 code for implementing our HTTP requests.
 
 # Team Contributions
 
@@ -34,6 +45,7 @@ Oleksiy Omelchenko: View Operations
 Zach Zulanas: Broadcasts
 - Sending / forwarding PUT and DELETE requests recieved from client to ensure consistency between replicas
 - Implemented replica-to-replica endpoint to allow replicas to send changes to one another
+- Built out Causal consistency distribution algorithm with Jackie and Oleksiy
 
 Jackie Garcia: Causal Consistency
 - Implemented Vector Clocks for every replica and send as causal-metadata (described in mechanism-description)
