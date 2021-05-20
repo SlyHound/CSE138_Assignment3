@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -68,7 +69,7 @@ func PutRequest(r *gin.Engine, dict map[string]StoreVal, localAddr int, view []s
 
 			fwdRequest.Header = c.Request.Header
 
-			httpForwarder := &http.Client{}
+			httpForwarder := &http.Client{Timeout: 10 * time.Second}
 			fwdResponse, err := httpForwarder.Do(fwdRequest)
 			_ = fwdResponse
 
