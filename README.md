@@ -46,6 +46,7 @@ Zach Zulanas: Broadcasts
 - Sending / forwarding PUT and DELETE requests recieved from client to ensure consistency between replicas
 - Implemented replica-to-replica endpoint to allow replicas to send changes to one another
 - Built out Causal consistency distribution algorithm with Jackie and Oleksiy
+- Created PutRequest(), ReplicatePut(), DeleteRequest(), ReplicateDelete(), GetRequest(), and setupRouter() functions. All deal with building routes/endpoints for client <-> server communication and replica <-> replica communication
 
 Jackie Garcia: Causal Consistency
 - Implemented Vector Clocks for every replica as causal-metadata (described in mechanism-description)
