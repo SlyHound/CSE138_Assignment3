@@ -44,9 +44,10 @@ Oleksiy Omelchenko: View Operations
 - The operations for the view operations include broadcasting GET requests on a 1 second interval to check that a replica is up or down. If a replica is down, then broadcast a DELETE request and finally broadcast a PUT request from the replica that comes up followed by a broadcasted GET to a custom endpoint. At the custom endpoint, a replica returns its key value store back to the brought up replica. 
 
 Zach Zulanas: Broadcasts
-- Sending / forwarding PUT and DELETE requests received from the client to ensure casual consistency between replicas.
-- Implemented a replica-to-replica endpoint to allow replicas to send any changes to the key value store.
-- Helped build the casual consistency distribution algorithm alongside Jackie and Oleksiy via peer programming. 
+- Sending / forwarding PUT and DELETE requests recieved from client to ensure consistency between replicas
+- Implemented replica-to-replica endpoint to allow replicas to send changes to one another
+- Built out Causal consistency distribution algorithm with Jackie and Oleksiy
+- Created PutRequest(), ReplicatePut(), DeleteRequest(), ReplicateDelete(), GetRequest(), and setupRouter() functions. All deal with building routes/endpoints for client <-> server communication and replica <-> replica communication
 
 Jackie Garcia: Causal Consistency
 - Implemented Vector Clocks for every replica as causal-metadata (described in the mechanism-description).
